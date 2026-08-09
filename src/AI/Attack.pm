@@ -173,6 +173,7 @@ sub process {
 			return;
 		}
 		
+	
 		if ($stage == MOVING_TO_ATTACK) {
 			# Check for hidden monsters
 			if (($target->{statuses}->{EFFECTSTATE_BURROW} || $target->{statuses}->{EFFECTSTATE_HIDING}) && $config{avoidHiddenMonsters}) {

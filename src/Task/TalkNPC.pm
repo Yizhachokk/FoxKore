@@ -979,6 +979,62 @@ sub addSteps {
 
 	debug "Task::TalkNPC::addSteps has been called with value '".$steps."'.\n", "ai_npcTalk";
 
+	# Merge split text tokens so multi-word values (e.g. t="Culinary Wine")
+	# are combined before validation.
+	my $is_step_start = sub {
+		my ($tok) = @_;
+		return 0 unless defined $tok;
+		return 1 if $tok =~ /^(?:c|x|n|s|b|e|k)$/i;
+		return 1 if $tok =~ /^w\d+/i;
+		return 1 if $tok =~ /^d\d+/i;
+		return 1 if $tok =~ /^t=/i;
+		return 1 if $tok =~ /^t$/i;
+		return 1 if $tok =~ /^a=/i;
+		return 1 if $tok =~ /^r(?:(?:\d+)|=|~\/)/i;
+		return 1 if $tok =~ /^b\d+,\d+/i;
+		return 0;
+	};
+
+	for (my $i = 0; $i < @new_steps; $i++) {
+		my $step = $new_steps[$i];
+
+		if ($step =~ /^t=(.*)/i) {
+			my $text = $1;
+			# If quoted and already closed, keep as is
+			if ($text =~ /^(['"]).*\1\s*\z/s) {
+				next;
+			}
+			my $j = $i + 1;
+			while ($j < @new_steps && !$is_step_start->($new_steps[$j])) {
+				$text .= ' ' . $new_steps[$j];
+				$j++;
+			}
+			$text =~ s/^\s*['"]//s;
+			$text =~ s/['"]\s*$//s;
+			$new_steps[$i] = "t=$text";
+			if ($j > $i + 1) {
+				splice(@new_steps, $i+1, $j-$i-1);
+			}
+
+		} elsif ($step =~ /^t$/i) {
+			my $j = $i + 1;
+			if ($j < @new_steps && defined $new_steps[$j] && $new_steps[$j] =~ /^=(.*)/s) {
+				$new_steps[$j] = $1;
+			}
+			my $text = '';
+			while ($j < @new_steps && !$is_step_start->($new_steps[$j])) {
+				$text .= ($text eq '' ? '' : ' ') . $new_steps[$j];
+				$j++;
+			}
+			$text =~ s/^\s*['"]//s;
+			$text =~ s/['"]\s*$//s;
+			if ($text ne '') {
+				$new_steps[$i] = "t=$text";
+				splice(@new_steps, $i+1, $j-$i-1) if $j > $i + 1;
+			}
+		}
+	}
+
 	foreach my $step (@new_steps) {
 		return 0 unless $self->validateStep($step);
 	}

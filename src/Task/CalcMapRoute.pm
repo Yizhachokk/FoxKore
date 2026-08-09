@@ -360,7 +360,6 @@ sub buildMapSolutionStep {
 	};
 }
 
-# Overrided method.
 sub iterate {
 	my ($self) = @_;
 	$self->SUPER::iterate();
@@ -502,6 +501,8 @@ sub iterate {
 				if ($self->shouldLogDebug()) {
 					debug "Map Solution Ready for traversal.\n", "calc_map_route";
 					debug sprintf("%s\n", $self->getRouteString()), "calc_map_route";
+					Plugins::callHook('FullSolutionReady', { route => $self->getRouteString(), fullRoute => $self->getFullRouteString() });
+
 				}
 
 		} elsif ($self->{done}) {

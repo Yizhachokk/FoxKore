@@ -93,7 +93,13 @@ use Misc qw(bulkConfigModify isCellOccupied);
 use Translation qw(T TF);
 use Utils;
 use AI;
-use POSIX qw(floor);
+#use POSIX qw(floor);
+
+sub floor {
+    my $x = shift;
+    return int($x) if $x >= 0;
+    return int($x) == $x ? $x : int($x) - 1;
+}
 
 use constant {
 	PLUGIN_NAME => 'eCast',

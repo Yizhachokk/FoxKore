@@ -5,8 +5,15 @@ benchmark-results.txt
 logs
 DUMP.txt
 
+# Claude Code project notes
+CLAUDE.md
+
 # Plugin files
 /profiles
+
+# Personal bot profiles and account credentials - never commit these
+/account/
+control/config.txt
 
 # Backup files
 *~

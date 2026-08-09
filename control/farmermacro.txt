@@ -1,0 +1,2954 @@
+
+# ---- moscovia - mosk_fild01 ----
+automacro mfild02 {
+location moscovia 137 47
+run-once 1
+disabled 0
+timeout 25
+call {
+pause 1
+do talk resp 0
+do mconf 1884 2 0 0
+do mconf 1885 -1 1 0
+do mconf 1883 -1 0 0
+do mconf 1882 -1 0 0
+do mconf 1881 -1 0 0
+do mconf 1060 -1 0 0
+do iconf 748 100 0 0
+do iconf 747 100 0 0
+do uneq Clip [Mimic] [1]
+do uneq Rosary [Mimic] [1]
+release mfild02
+}
+}
+
+# ---- moscovia - mosk_fild01 ----
+automacro pront_reset {
+run-once 1
+disabled 1
+exclusive 1
+location yuno
+zeny > 80000
+call {
+do ai manual
+do move prontera 148 188
+do talknpc 150 193 c r2 n
+do conf lockMap mosk_dun03
+do ai on
+}
+}
+
+
+automacro GiveUndershirt2 {
+	inventory "Undershirt" > 1
+	exclusive 1
+	disabled 0
+	call {
+		do storage close
+		do uneq @inventory(Undershirt)
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Undershirt)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro Give_BlueHerb {
+	inventory "Blue Herb" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Blue Herb)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_SingingFlower {
+	inventory "Singing Flower" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Singing Flower)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_SingingPlant {
+	inventory "Singing Plant" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Singing Plant)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_IllusionFlower {
+	inventory "Illusion Flower" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Illusion Flower)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_CrystalMirror {
+	inventory "Crystal Mirror" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Crystal Mirror)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_WitherlessRose {
+	inventory "Witherless Rose" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Witherless Rose)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_PrinciplesOfMagic2 {
+	inventory "Principles of Magic [2]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Principles of Magic [2])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+########################
+automacro GiveStem {
+	inventory "Stem" > 0
+	exclusive 1
+	disabled 1
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Stem)
+		pause 2.5
+		do deal
+		pause 2.5
+		do automap change
+	}
+}
+########################
+automacro GiveMagni {
+	inventory "Magni's Cap" > 0
+	exclusive 1
+	disabled 1
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Magni's Cap)
+		pause 2.5
+		do deal
+		pause 2.5
+		do automap change
+	}
+}
+ 
+automacro GivePoisonSpore {
+	inventory "Poison Spore" > 0
+	exclusive 1
+	disabled 1
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Poison Spore)
+		pause 2.5
+		do deal
+		pause 2.5
+		do automap change
+	}
+}
+
+automacro GiveFabric {
+	inventory "Fabric" > 0
+	exclusive 1
+	location yuno
+	disabled 1
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Fabric)
+		pause 2.5
+		do deal
+		pause 2.5
+		do automap change
+	}
+}
+automacro GiveImmortalHeart {
+	inventory "Immortal Heart" > 0
+	exclusive 1
+	location yuno
+	disabled 1
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Immortal Heart)
+		pause 2.5
+		do deal
+		pause 2.5
+		do automap change
+	}
+}
+
+
+
+###########################################################################################
+automacro reloadConfig {
+ console /configr/
+  exclusive 1
+ call {
+	do reload config
+	pause 2.5
+ }
+ timeout 5
+}
+
+###########################################################################################
+automacro reloadportals {
+ console /reportal/
+ exclusive 1
+ call {
+	do reload portal
+ }
+ timeout 5
+}
+###########################################################################################
+automacro reloadMacroses {
+ console /macror/
+ exclusive 1
+ call {
+	do p macro reloaded
+	do reload macro
+	pause 2.5
+ }
+ timeout 5
+}
+###########################################################################################
+automacro lockMapChange {
+guild /.+_.+/
+exclusive 1
+call {
+log $.lastpartyMsg 
+do conf lockMap $.lastpartyMsg
+do ai on
+}
+timeout 15
+}
+
+###################
+automacro mjo_dun02 {
+ map mjo_dun02 #map name
+ exclusive 1
+ run-once 1
+ overrideAI 0
+  call {
+	do ai manual
+	do mconf 1121 2 0 0
+	do mconf 1145 -1 0 0
+	do mconf 1169 -1 0 0
+	do mconf 1111 -1 0 0
+	do ai on
+}
+}
+automacro FarmElvenEars {
+	inventory "Elven Ears" < 1
+	exclusive 1
+	run-once 1
+	disabled 1
+	call {
+		do storage close
+		do conf lockMap mjo_dun02
+	}
+}
+
+automacro GiveElvenEars {
+	inventory "Elven Ears" > 0
+	exclusive 1
+	call {
+		do storage close
+		do respawn
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Elven Ears)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro FarmUndershirt1488 {
+	inventory "Undershirt" < 5
+	run-once 1
+	disabled 1
+	call {
+		do storage close
+		do conf lockMap in_sphinx3
+		do mconf 1037 -1 0 0
+		do mconf 1098 -1 0 0
+		do mconf 1146 -1 0 0
+		do mconf 1191 -1 0 0
+		do mconf 1157 -1 0 0
+		do mconf 1154 2 0 0
+	}
+}
+automacro GiveIllusionFlower {
+	inventory "Illusion Flower" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Illusion Flower)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveHammerOfBlacksmith {
+	inventory "Hammer of Blacksmith" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Hammer of Blacksmith)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveOldMagicbook {
+	inventory "Old Magicbook" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Old Magicbook)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveRedHerb {
+	inventory "Red Herb" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Red Herb)
+		pause 2.5
+		do deal
+		pause 2.5
+		do autostorage
+	}
+}
+
+automacro GiveYellowHerb {
+	inventory "Yellow Herb" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Yellow Herb)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveWhiteHerb {
+	inventory "White Herb" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(White Herb)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveMedicineBowl {
+	inventory "Medicine Bowl" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Medicine Bowl)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveCoal {
+	inventory "Coal" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Coal)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveMiniFurnaces {
+	inventory "Mini Furnaces" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Mini Furnaces)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveAlcohol {
+	inventory "Alcohol" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Alcohol)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveDetrimindexta {
+	inventory "Detrimindexta" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Detrimindexta)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveUndershirt {
+	inventory "Undershirt [1]" > 1
+	exclusive 1
+	disabled 0
+	call {
+		do storage close
+		do uneq @inventory(Undershirt)
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Undershirt [1])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+
+
+automacro Giveessing {
+	inventory "Odin's Blessing [1]" > 0
+	exclusive 1
+	call {
+		do storage close
+		
+		do uneq @inventory(Odin's Blessing [1])
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Odin's Blessing [1])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+
+automacro Abysmal Knight Card {
+	inventory "Abysmal Knight Card" > 0
+	exclusive 1
+	call {
+		do storage close
+		
+		do uneq @inventory(Abysmal Knight Card)
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Abysmal Knight Card)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveStoneBuckler {
+	inventory "Stone Buckler [1]" > 0
+	exclusive 1
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Stone Buckler [1])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveBuckler {
+	inventory "Buckler [1]" > 0
+	location yuno
+	exclusive 1
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Buckler [1])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+###########################################################################################
+automacro reloadMacroses {
+ console /macror/
+ exclusive 1
+ call {
+	do p macro reloaded
+	do reload macro
+	pause 2.5
+ }
+ timeout 5
+}
+###########################################################################################
+automacro reloadConfig {
+ console /configr/
+  exclusive 1
+ call {
+	do reload config
+	pause 2.5
+ }
+ timeout 5
+}
+
+automacro GiveEmptyBottle {
+	inventory "Empty Bottle" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh 158 126
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Empty Bottle)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+
+########################
+# AUTOMACRO
+########################
+
+automacro GiveKatarOfColdIcicle {
+	inventory "Katar of Cold Icicle" > 0
+	exclusive 1
+	disabled 0
+	call {
+		do storage close
+		
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Katar of Cold Icicle)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+########################
+automacro zeny {
+zeny > 500000
+exclusive 1
+overrideAI 0
+call { 	
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add z 400000
+		pause 2.5
+		do deal
+		pause 2.5
+}
+timeout 15
+}
+##############################################################
+automacro aloot {
+console /Item Appeared/
+call {
+do p autoloot?
+do c @autoloot
+}
+timeout 2
+}
+
+##############################################################
+automacro route {
+console /calculate a route from/
+call {
+do p stuck
+do reload portals
+do c @refresh
+}
+timeout 2
+}
+##############################################################
+automacro mconf {
+location yuno
+run-once 1
+call {
+do mconf 1008 -1 0 0
+do mconf 1009 -1 0 0
+do mconf 1090 -1 0 0
+do mconf 1041 -1 0 0
+do mconf 1149 -1 0 0
+do mconf 1004 -1 0 0
+do mconf 1031 -1 0 0
+do mconf 1094 -1 0 0
+do mconf 1104 -1 0 0
+do mconf 1128 -1 0 0
+do mconf 1113 2 0 0
+do mconf 1002 2 0 0
+do iconf 717 5 1 0
+do iconf 2612 0 0 1
+}
+timeout 2
+}
+
+automacro GiveMilk {
+	inventory "Milk" > 0
+	exclusive 1
+	disabled 0
+	call {
+		do storage close
+		
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Milk)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveOldFryingPan {
+	inventory "Old Frying Pan" > 0
+	exclusive 1
+	disabled 0
+	call {
+		do storage close
+		
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Old Frying Pan)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveCheese {
+	inventory "Cheese" > 0
+	exclusive 1
+	disabled 0
+	call {
+		do storage close
+		
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Cheese)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GivePieceOfCake {
+	inventory "Piece of Cake" > 0
+	exclusive 1
+	disabled 0
+	call {
+		do storage close
+		
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 3
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Piece of Cake)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveArrow {
+	inventory "Arrow" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Arrow)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveSteelArrow {
+	inventory "Steel Arrow" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Steel Arrow)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveFireArrow {
+	inventory "Fire Arrow" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Fire Arrow)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveBoots {
+	inventory "Boots [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Boots [1])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+
+automacro GiveOridecon {
+	inventory "Oridecon" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Oridecon)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveChocolatePie {
+	inventory "Chocolate Pie" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Chocolate Pie)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveConcentrationPotion {
+	inventory "Concentration Potion" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Concentration Potion)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveUnripeApple {
+	inventory "Unripe Apple" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Unripe Apple)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveOrangeJuice {
+	inventory "Orange Juice" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Orange Juice)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveRainbowCarrot {
+	inventory "Rainbow Carrot" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Rainbow Carrot)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveEarthwormTheDude {
+	inventory "Earthworm the Dude" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Earthworm the Dude)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveSweetMilk {
+	inventory "Sweet Milk" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Sweet Milk)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveSingingFlower {
+	inventory "Singing Flower" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Singing Flower)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveOldBroom {
+	inventory "Old Broom" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Old Broom)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveArmletOfObedience {
+	inventory "Armlet of Obedience" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Armlet of Obedience)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveContractInShadow {
+	inventory "Contract in Shadow" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Contract in Shadow)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveHerHeart {
+	inventory "Her Heart" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Her Heart)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveVenomCanine {
+	inventory "Venom Canine" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Venom Canine)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveCactusNeedle {
+	inventory "Cactus Needle" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Cactus Needle)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveMouldPowder {
+	inventory "Mould Powder" > 0
+	exclusive 1
+	disabled 1
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Mould Powder)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveAlligatorCard {
+	inventory "Alligator Card" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Alligator Card)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveIcicleFist {
+	inventory "Icicle Fist [3]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Icicle Fist [3])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveClip {
+	inventory "Clip [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149, 151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Clip [1])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveMonsterJuice {
+	inventory "Monster Juice" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Monster Juice)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveFattyChubbyEarthworm {
+	inventory "Fatty Chubby Earthworm" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Fatty Chubby Earthworm)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveShiningStone {
+	inventory "Shining Stone" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Shining Stone)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveBookOfTheDevil {
+	inventory "Book of the Devil" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Book of the Devil)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveJokerJester {
+	inventory "Joker Jester" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Joker Jester)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro GiveYellowGemstone {
+	inventory "Yellow Gemstone" > 0
+	exclusive 1
+	disabled 1
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+				do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Yellow Gemstone)
+				pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+
+automacro GiveWitchStarsand {
+	inventory "Witch Starsand" > 0
+	exclusive 1
+	disabled 1
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Witch Starsand)
+		pause 2.5
+		do deal
+		pause 2.5
+		do deal
+	}
+}
+
+automacro GiveCobweb {
+	inventory "Cobweb" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Cobweb)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveGarlet {
+	inventory "Garlet" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Garlet)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveTornMagicBook {
+	inventory "Torn Magic Book" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Torn Magic Book)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveYoyoDoll {
+	inventory "Yoyo Doll" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Yoyo Doll)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveRaccoonLeaf {
+	inventory "Raccoon Leaf" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Raccoon Leaf)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro GiveRedBlood {
+	inventory "Red Blood" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Red Blood)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+automacro Give_ChainMail {
+	inventory "Chain Mail [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Chain Mail [1])
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro Give_PooPooHat {
+	inventory "Poo Poo Hat" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Poo Poo Hat)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro Give_EvilBoneWand {
+	inventory "Evil Bone Wand" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Evil Bone Wand)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro Give_LegacyOfDragon {
+	inventory "Legacy of Dragon" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2.5
+		do deal add @inventory(Legacy of Dragon)
+		pause 2.5
+		do deal
+		pause 2.5
+	}
+}
+
+automacro Give_WingStaff {
+	inventory "Wing Staff" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Wing Staff)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Necklace {
+	inventory "Necklace [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Necklace [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_HeavenlyWings {
+	inventory "Heavenly Wings [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Heavenly Wings [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_HaedongGum {
+	inventory "Haedong Gum [2]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Haedong Gum [2])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_SaintsRobe {
+	inventory "Saint's Robe [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Saint's Robe [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+automacro Give_IcicleWhip {
+	inventory "Icicle Whip" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Icicle Whip)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_QueensWhip {
+	inventory "Queen's Whip" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Queen's Whip)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Punisher {
+	inventory "Punisher" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Punisher)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+automacro Give_QueensHairOrnament {
+	inventory "Queen's Hair Ornament" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Queen's Hair Ornament)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_RockerGlasses {
+	inventory "Rocker Glasses" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Rocker Glasses)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_StarDustBlade {
+	inventory "Star Dust Blade [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Star Dust Blade [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_HypnotistsStaff {
+	inventory "Hypnotist's Staff [2]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Hypnotist's Staff [2])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Manteau {
+	inventory "Manteau [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Manteau [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_ThornyBuckler {
+	inventory "Thorny Buckler [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Thorny Buckler [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_VariousJur {
+	inventory "Various Jur [4]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Various Jur [4])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+automacro Give_CapeOfAncientLord {
+	inventory "Cape of Ancient Lord" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Cape of Ancient Lord)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_ButterflyMask {
+	inventory "Butterfly Mask" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Butterfly Mask)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_AngelWings {
+	inventory "Angel Wings" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Angel Wings)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Cap1 {
+	inventory "Cap [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Cap [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Turban1 {
+	inventory "Turban [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Turban [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_MorpheusBandana {
+	inventory "Morpheus's Bandana" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Morpheus's Bandana)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_BigRibbon {
+	inventory "Big Ribbon" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Big Ribbon)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_FriccasCirclet {
+	inventory "Fricca's Circlet" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Fricca's Circlet)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+
+automacro Give_MonkHat {
+	inventory "Monk Hat" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Monk Hat)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+
+automacro Give_MrScream {
+	inventory "Mr. Scream" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Mr. Scream)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Pipe {
+	inventory "Pipe" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Pipe)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Gakkung1 {
+	inventory "Gakkung [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Gakkung [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_LunaBow2 {
+	inventory "Luna Bow [2]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Luna Bow [2])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_CompositeBow4 {
+	inventory "Composite Bow [4]" > 0
+	exclusive 1
+	disabled 1
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Composite Bow [4])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_HuumaBlazeShuriken {
+	inventory "Huuma Blaze Shuriken" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Huuma Blaze Shuriken)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_HeartBreaker1 {
+	inventory "Heart Breaker [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Heart Breaker [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_BurningBow1 {
+	inventory "Burning Bow [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Burning Bow [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_LuciusVolcano {
+	inventory "Lucius's Fierce of Volcano" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Lucius's Fierce of Volcano)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_MorrigansHelm {
+	inventory "Morrigan's Helm" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Morrigan's Helm)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+automacro Give_MonsterOxygenMask {
+	inventory "Monster Oxygen Mask" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Monster Oxygen Mask)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Saber3 {
+	inventory "Saber [3]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Saber [3])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_GentleBreezeGuitar {
+	inventory "Gentle Breeze Guitar" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Gentle Breeze Guitar)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_HuumaCalmMind2 {
+	inventory "Huuma Calm Mind [2]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Huuma Calm Mind [2])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_ElectricWire {
+	inventory "Electric Wire" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Electric Wire)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_OrcishAxe {
+	inventory "Orcish Axe" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Orcish Axe)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_KatarOfPiercingWind {
+	inventory "Katar of Piercing Wind" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Katar of Piercing Wind)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_BloodyTears2 {
+	inventory "Bloody Tears [2]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Bloody Tears [2])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Ring {
+	inventory "Ring" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Ring)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Brooch {
+	inventory "Brooch" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Brooch)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_SilkRobe1 {
+	inventory "Silk Robe [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Silk Robe [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_LongBarrel {
+	inventory "Long Barrel [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Long Barrel [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_EarthBow {
+	inventory "Earth Bow [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Earth Bow [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Tights {
+	inventory "Tights [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Tights [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_KatarRagingBlaze {
+	inventory "Katar of Raging Blaze" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Katar of Raging Blaze)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_ThiefClothes {
+	inventory "Thief Clothes [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Thief Clothes [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_BerserkGuitar {
+	inventory "Berserk Guitar" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Berserk Guitar)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_Glove {
+	inventory "Glove" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Glove)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_MirrorShield {
+	inventory "Mirror Shield [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Mirror Shield [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_InverseScale {
+	inventory "Inverse Scale" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Inverse Scale)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_CrimsonBolt {
+	inventory "Crimson Bolt [2]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Crimson Bolt [2])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_PirateBandana {
+	inventory "Pirate Bandana" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Pirate Bandana)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+
+
+automacro Give_DragonTailCard {
+	inventory "Dragon Tail Card" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Dragon Tail Card)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+automacro Give_FormalSuit1 {
+	inventory "Formal Suit [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Formal Suit [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_FullPlate1 {
+	inventory "Full Plate [1]" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Full Plate [1])
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_WraithCard {
+	inventory "Wraith Card" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Wraith Card)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_RottenFish {
+	inventory "Rotten Fish" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Rotten Fish)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_RustyIron {
+	inventory "Rusty Iron" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Rusty Iron)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_DeadlyNoxiousHerb {
+	inventory "Deadly Noxious Herb" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Deadly Noxious Herb)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_TropicalBanana {
+	inventory "Tropical Banana" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Tropical Banana)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_BowThimble {
+	inventory "Bow Thimble" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Bow Thimble)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_AbysmalKnightCard {
+	inventory "Abysmal Knight Card" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal SinMerch
+		pause 2
+		do deal add @inventory(Abysmal Knight Card)
+		pause 2
+		do deal
+		pause 2
+	}
+}
+
+automacro Give_CompositeBow {
+	inventory "Composite Bow [4]" > 0
+	exclusive 1
+	disabled 0
+	call {
+		do respawn
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		do c @refresh
+		do deal "Fast Arrow"
+		pause 2
+		do deal add @inventory(Composite Bow [4])
+		pause 2
+		do deal
+	}
+	timeout 90
+}
+
+automacro Farm_CompositeBow {
+	inventory "Composite Bow [4]" < 1
+	exclusive 1
+	run-once 1
+	location yuno
+	call {
+		do storage close
+		do conf lockMap gef_fild11
+		do mconf 1126 -1 0 0
+		do mconf 1125 -1 0 0
+		do mconf 1124 -1 0 0
+		do mconf 1123 -1 0 0
+		do mconf 1122 -1 0 0
+		do mconf 1299 -1 0 0
+		do mconf 1392 -1 0 0
+		do mconf 1258 2 0 0
+	}
+}
+
+
+###############################BOOKS
+automacro GiveBookOfBillows {
+	inventory "Book of Billows" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	overrideAI 1
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do ai manual
+		do deal BinaryFootprint
+		pause 2.5
+		do deal add @inventory(Book of Billows)
+		pause 2.5
+		do deal
+		pause 4
+		do deal
+		do ai on
+	}
+}
+
+automacro GiveBookOfMotherEarth {
+	inventory "Book of Mother Earth" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	overrideAI 1
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do ai manual
+		do deal BinaryFootprint
+		pause 2.5
+		do deal add @inventory(Book of Mother Earth)
+		pause 2.5
+		do deal
+		pause 4
+		do deal
+		do ai on
+	}
+}
+
+automacro GiveBookOfTheBlazingSun {
+	inventory "Book of the Blazing Sun" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	overrideAI 1
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do ai manual
+		do deal BinaryFootprint
+		pause 2.5
+		do deal add @inventory(Book of the Blazing Sun)
+		pause 2.5
+		do deal
+		pause 4
+		do deal
+		do ai on
+	}
+}
+
+automacro GiveBookOfGustOfWind {
+	inventory "Book of Gust of Wind" > 0
+	exclusive 1
+	disabled 0
+	location yuno
+	overrideAI 1
+	call {
+		do storage close
+		do move yuno @rand(149,151) @rand(183,185)
+		pause 1
+		do c @refresh
+		do ai manual
+		do deal BinaryFootprint
+		pause 2.5
+		do deal add @inventory(Book of Gust of Wind)
+		pause 2.5
+		do deal
+		pause 4
+		do deal
+		do ai on
+	}
+}
