@@ -301,9 +301,14 @@ sub iterate {
 	} elsif ( $self->{mapSolution}[0]{is_airship} ) {
 		if (!$self->{timeout} || timeOut($self->{timeout}, 0.5)) {
 			$self->{timeout} = time;
-			
-			my $min_npc_dist = 8;
-			my $max_npc_dist = 10;
+
+			# EXACT-flagged portals (see FileParsers::parsePortals) need to be
+			# stood on exactly, not just approached - some servers script an
+			# OnTouch NPC-style conversation onto the portal tile itself (e.g.
+			# an airship boarding confirmation), instead of a separate NPC
+			# actor standing a few tiles away.
+			my $min_npc_dist = $self->{mapSolution}[0]{exact} ? 0 : 8;
+			my $max_npc_dist = $self->{mapSolution}[0]{exact} ? 0 : 10;
 			my $realPos = calcPosFromPathfinding($field, $self->{actor});
 			my $dist_to_npc = blockDistance($realPos, $self->{mapSolution}[0]{pos});
 			return unless actorFinishedMovement($self->{actor}, $field, $timeout{ai_portal_wait}{timeout}, 1);
@@ -441,8 +446,10 @@ sub iterate {
 		}
 
 	} elsif ( $self->{mapSolution}[0]{steps} ) {
-		my $min_npc_dist = 8;
-		my $max_npc_dist = 10;
+		# EXACT-flagged portals need to be stood on exactly - see the
+		# is_airship branch above for the full explanation.
+		my $min_npc_dist = $self->{mapSolution}[0]{exact} ? 0 : 8;
+		my $max_npc_dist = $self->{mapSolution}[0]{exact} ? 0 : 10;
 		my $realPos = calcPosFromPathfinding($field, $self->{actor});
 		my $dist_to_npc = blockDistance($realPos, $self->{mapSolution}[0]{pos});
 		return unless actorFinishedMovement($self->{actor}, $field, $timeout{ai_portal_wait}{timeout}, 1);
