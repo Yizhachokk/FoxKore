@@ -1,0 +1,1393 @@
+##############################################################################
+# Rachel Sanctuary Quest + Lost Child Quest (prerequisite) — combined chain
+#
+# Built from npc/quests/quests_rachel.txt (rAthena, L0ne_W0lf, v3.6) — NOT
+# from the wiki alone, since the wiki had wrong coordinates/mechanics in
+# several places (see EVENTMACRO.md "Real example"/comparison notes).
+#
+# Server confirmed: Pre-Renewal. Lost Child Quest: not yet done on this char.
+#
+# IMPORTANT CAVEATS (per EVENTMACRO.md Debugging conventions):
+# 1. RQ_00_Setup turns on `do conf autoTalkCont 1` once, globally, for the
+#    whole session — this makes OpenKore auto-press "continue" on every
+#    plain dialogue screen by itself (see src/Task/TalkNPC.pm), so every
+#    `do talknpc` sequence below carries ONLY the `rN` (menu choice) tokens,
+#    no `c` tokens at all. This was cross-checked against the live
+#    rathena/rathena script to get the select() positions/indexes right.
+#    autoTalkCont only affects `do talknpc`-driven conversations (real
+#    clickable NPCs) — the few OnTouch-triggered dialogues (walking onto an
+#    invisible trigger tile: window, maze checkpoints, bloody spot, gate,
+#    key, door, eavesdrop) are NOT started via `do talknpc`, so those still
+#    use explicit `do talk cont`/`do talk resp N` sequences; whether
+#    autoTalkCont also auto-continues those is unverified — if they turn
+#    out to double-continue/error, that's the thing to check first.
+#    If a step stalls: `do conf debugDomains eventMacro`, then
+#    `eventMacro auto <name>` to see what's actually blocking.
+# 2. $rachel_donate (server-wide donation counter) must already be >= 10000
+#    for any of the ra_tem_q content below to be reachable at all — this
+#    file assumes that's already true on FoxRO. If Nemma still shows the
+#    donation UI instead of "the gate won't open", the counter isn't there
+#    yet and this whole chain is unreachable until it is.
+# 3. The candy-kid step includes a genuine 50% server-side RNG gate
+#    (rand(1,2) in the script) — this is NOT run-once, so a failed attempt
+#    just retries on the next timeout. It also branches further on whether
+#    you're already carrying a "Candy" item (529) — RQ_03/RQ_04 farm it
+#    automatically (rule 6/9) before the walk-and-talk chain even starts.
+#    Candy is NOT sold by any NPC (checked divine-pride.net) — only dropped
+#    (~1.6-1.75%) by Marin/Cookie/Myst Case at xmas_dun01 (Toy Factory
+#    Warehouse). Low drop rate for a 1-item requirement, but automated
+#    per the user's call rather than left as a manual step.
+# 4. Pope's two free-response prompts use `do talk text "..."` rather than
+#    being crammed into a talknpc sequence, since raw text input mid-dialogue
+#    doesn't fit the c/rN grammar.
+# 5. RQ_00_Setup triggers on `InMapRegex` (not `OnCharLogIn`) — it fires once
+#    you're on any map OTHER than the quest's own map cluster (rachel,
+#    ra_temple, ra_temin, ra_temsky, ra_in01, ra_fild01, que_rachel,
+#    que_san04, ra_san01, ice_dun01, xmas_dun01, hugel). Since it's
+#    `run-once 1`, if the character happens to already be standing on one of
+#    those maps when this file loads, setup won't fire until you leave that
+#    cluster once — walk out and back in if that happens.
+#
+# --- SETUP: do this by hand before using this file ---
+#
+# 1. Add this to your control/config.txt (or profile config.txt) — getAuto
+#    is config.txt-only, there is no console command for it:
+#
+#    getAuto Glacial Heart {
+#        minAmount 0
+#        maxAmount 40
+#        batchSize 0
+#        passive 0
+#        disabled 0
+#    }
+#    getAuto Candy {
+#        minAmount 0
+#        maxAmount 1
+#        batchSize 0
+#        passive 0
+#        disabled 0
+#    }
+#
+# 2. !include this file from your main eventMacros.txt. Path is relative to
+#    wherever the !include line itself lives — e.g. from
+#    account/<profile>/eventMacros.txt (two levels below repo root):
+#
+#    !include ../../RachelQuests.txt
+#
+#    (add one more ../ per extra folder level, e.g. account/hunting/<profile>/)
+##############################################################################
+
+
+##############################################################################
+# SECTION 0 — One-time loot setup (rule 9: farm/buy everything BEFORE the
+# walk-and-talk chain starts)
+##############################################################################
+
+automacro RQ_00_Setup {
+	InMapRegex /^(?!rachel$|ra_temple$|ra_temin$|ra_temsky$|ra_in01$|ra_fild01$|que_rachel$|que_san04$|ra_san01$|ice_dun01$|xmas_dun01$|hugel$).*$/
+	run-once 1
+	exclusive 1
+	call {
+		log "RQ_00_Setup: configuring items_control/mon_control for Glacial Heart farm"
+		do c I'm starting the Rachel Sanctuary + Lost Child quest chain. Setting up loot config first.
+		$trackA_done = 0
+		$trackB_started = 0
+		$rsGateStage = 0
+		$rsPopeStage = 0
+		$rsEavesdropStage = 0
+		$rsKeyStage = 0
+		$rsHolyGround = 0
+		log "RQ_00_Setup: getAuto is a config.txt block, not a console command — see the getAuto block in this file's own header comment, paste it into control/config.txt yourself."
+		do conf autoTalkCont 1
+		do iconf Glacial Heart 40 0 0
+		do mconf Siroma 2 0 0
+		do iconf Candy 1 0 0
+		do mconf Marin 2 0 0
+		do mconf Cookie 2 0 0
+		do mconf Myst Case 2 0 0
+		$setupDone = 1
+	}
+}
+
+
+##############################################################################
+# SECTION 0.5 — Firecracker purchase, moved to the very start (per user
+# request) so it runs alongside the other loot prerequisites instead of
+# waiting for rsGateStage 14 later in the Sanctuary chain.
+##############################################################################
+
+automacro RQ_00B_BuyFirecrackers {
+	VarValue $setupDone 1
+	InInventory "Firecracker" < 20
+	run-once 1
+	call {
+		log "RQ_00B_BuyFirecrackers: going to hu_in01, Party Supplies Shop, to buy Firecrackers"
+		do c RQ_00B: heading to the Party Supplies Shop in Hugel to buy Firecrackers.
+		do conf lockMap hu_in01
+		do conf lockMap_x 23
+		do conf lockMap_y 311
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+# Party Supplies Shop (hu_in01, 23, 311) sells Firecracker in fixed packs of 5
+# for 500 zeny (confirmed live: select() menu is "Buy"/"Cancel"/"Cancel Chat",
+# so r0 = Buy). Confirmed via `npc list` that its real in-game name has NO
+# "#hu_in01" map-disambiguation suffix, unlike Nemma/Vincent/etc elsewhere in
+# this file - it's just "Party Supplies Shop", plain. Not run-once, since one
+# purchase (5) isn't enough for the 20 needed - it keeps re-firing (short
+# timeout) until InInventory clears the gate.
+automacro RQ_00B2_PurchaseFirecrackers {
+	VarValue $setupDone 1
+	InInventory "Firecracker" < 20
+	NpcNear /^Party Supplies Shop$/
+	exclusive 1
+	timeout 5
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RQ_00B2_PurchaseFirecrackers: buying 5 Firecrackers - 500z"
+		do c RQ_00B2: buying 5 Firecrackers for 500 zeny.
+		do talknpc $nx $ny r0
+	}
+}
+
+
+##############################################################################
+# SECTION 0.6 — Autoloot: any time an item drops on the ground, send the
+# server's @autoloot chat command (same command farmermacro.txt already uses
+# via `do c @autoloot`). Not tied to a Rachel quest step — general utility,
+# active for the whole session. Reacts to the item_appeared hook
+# (Network/Receive.pm), fired once per dropped item; the 2s timeout throttles
+# repeat firing when several items drop in the same tick (e.g. AoE kill).
+#
+# BUGFIX: eventMacro's substitue_variables() (Runner.pm) scans every command
+# string — not just condition text — for bare $/@/% variables and replaces
+# them; an unescaped "@autoloot" gets read as the array variable @autoloot
+# and replaced with that array's SIZE (0, since it's never declared), which
+# is why the bot said "0" instead of "@autoloot". Escaping as "\@autoloot"
+# stops the substitution (backslash-escaped vars are skipped, then the
+# backslash itself is stripped before the command runs).
+##############################################################################
+
+automacro RQ_00C_AutolootOnDrop {
+	SimpleHookEvent item_appeared
+	VarValue $setupDone 1
+	timeout 2
+	call {
+		log "RQ_00C_AutolootOnDrop: item appeared on the ground, sending \@autoloot"
+		do c \@autoloot
+	}
+}
+
+
+
+##############################################################################
+# SECTION 1 — Glacial Heart farm chain (ice_dun01, Siroma) — rule 6/6.6
+# Only runs if 40 Glacial Hearts aren't already on hand after autostorage.
+##############################################################################
+
+automacro RQ_01_Restock {
+	InInventory "Glacial Heart" < 40
+	InInventory "Firecracker" < 20
+	InInventory "Candy" < 1
+	VarValue $trackA_done 0
+	NotInMap hugel
+	NotInMap hu_in01
+	exclusive 1
+	timeout 900
+	call {
+		log "RQ_01_Restock: trying do autostorage before farming"
+		do c Checking storage for Glacial Hearts before farming.
+		do autostorage
+	}
+}
+
+automacro RQ_02_FarmGlacialHeart {
+	InInventory "Glacial Heart" < 40
+	InInventory "Firecracker" >= 20
+	exclusive 1
+	timeout 900
+	call {
+		log "RQ_02_FarmGlacialHeart: heading to ice_dun01 to farm Siroma"
+		do c Farming Glacial Hearts from Siroma at ice_dun01.
+		do conf lockMap ice_dun01
+		do conf lockMap_x 0
+		do conf lockMap_y 0
+		do conf lockMap_randX 0
+		do conf lockMap_randY 0
+	}
+}
+
+automacro RQ_03_CandyRestock {
+	InInventory "Candy" < 1
+	InInventory "Glacial Heart" >= 40
+	exclusive 1
+	timeout 900
+	call {
+		log "RQ_03_CandyRestock: trying do autostorage before farming Candy"
+		do c Checking storage for Candy before farming.
+		do autostorage
+	}
+}
+
+automacro RQ_04_FarmCandy {
+	InInventory "Candy" < 1
+	InInventory "Glacial Heart" >= 40
+	exclusive 1
+	timeout 900
+	call {
+		log "RQ_04_FarmCandy: heading to xmas_dun01 to farm Marin/Cookie/Myst Case"
+		do c Farming Candy from Marin/Cookie/Myst Case at xmas_dun01 - low drop rate, may take a while.
+		do conf lockMap xmas_dun01
+		do conf lockMap_x 0
+		do conf lockMap_y 0
+		do conf lockMap_randX 0
+		do conf lockMap_randY 0
+	}
+}
+
+
+##############################################################################
+# SECTION 2 — Lost Child Quest (Track B) — QuestActive-gated (real quest IDs
+# 8089-8099), so these are safe to disambiguate precisely.
+##############################################################################
+
+automacro LC_01_VincentAccept {
+	InInventory "Glacial Heart" >= 40
+	InInventory "Candy" >= 1
+	InInventory "Firecracker" >= 20
+	run-once 1
+	exclusive 1
+	call {
+		log "LC_01_VincentAccept"
+		do c LC_01: talking to Vincent to accept the Lost Child Quest.
+		do conf lockMap ra_in01
+		do conf lockMap_x 384
+		do conf lockMap_y 246
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_01b_VincentAcceptTalk {
+	NpcNear /^Vincent#ra_in01$/
+	QuestInactive 8089
+	VarValue $trackB_started 0
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_01b: talking to Vincent, accepting quest"
+		do talknpc $nx $ny r1
+		$trackB_started = 1
+	}
+}
+
+automacro LC_02_Logan {
+	QuestActive 8089
+	NpcNear /^Logan#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_02_Logan"
+		do c LC_02: talking to Logan.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_02_GoLogan {
+	QuestActive 8089
+	NoNpcNear /^Logan#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap rachel
+		do conf lockMap_x 114
+		do conf lockMap_y 232
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_03_Manson {
+	QuestActive 8090
+	NpcNear /^Manson#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_03_Manson"
+		do c LC_03: talking to Manson.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_03_GoManson {
+	QuestActive 8090
+	NoNpcNear /^Manson#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_in01
+		do conf lockMap_x 372
+		do conf lockMap_y 200
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_04_Jenny1 {
+	QuestActive 8091
+	NpcNear /^Jenny#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_04_Jenny1"
+		do c LC_04: talking to Jenny.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_04_GoJenny1 {
+	QuestActive 8091
+	NoNpcNear /^Jenny#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap rachel
+		do conf lockMap_x 48
+		do conf lockMap_y 237
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_05_Merchant1 {
+	QuestActive 8092
+	NpcNear /^Idle Merchant#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_05_Merchant1"
+		do c LC_05: talking to the first Idle Merchant.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_05_GoMerchant1 {
+	QuestActive 8092
+	NoNpcNear /^Idle Merchant#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap rachel
+		do conf lockMap_x 138
+		do conf lockMap_y 73
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_06_Merchant2 {
+	QuestActive 8092
+	NpcNear /^Idle Merchant#ra_in01_2$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_06_Merchant2"
+		do c LC_06: talking to the second Idle Merchant.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_06_GoMerchant2 {
+	QuestActive 8092
+	NoNpcNear /^Idle Merchant#ra_in01_2$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap rachel
+		do conf lockMap_x 120
+		do conf lockMap_y 47
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_07_SuspiciousMan {
+	QuestActive 8093
+	NpcNear /^Suspicious Man#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_07_SuspiciousMan"
+		do c LC_07: talking to the Suspicious Man, Mogan. This will hurt - percentheal -50.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_07_GoSuspiciousMan {
+	QuestActive 8093
+	NoNpcNear /^Suspicious Man#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_fild01
+		do conf lockMap_x 245
+		do conf lockMap_y 325
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_08_VincentExplain {
+	QuestActive 8094
+	NpcNear /^Vincent#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_08_VincentExplain"
+		do c LC_08: back to Vincent, hearing the family secret.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_08_GoVincent {
+	QuestActive 8094
+	NoNpcNear /^Vincent#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_in01
+		do conf lockMap_x 384
+		do conf lockMap_y 246
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_09_KidJewel {
+	QuestActive 8095
+	NpcNear /^Kid#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_09_KidJewel"
+		do c LC_09: talking to Phobe, Kid#ra_in01, retrieving the jewel.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_09_GoKidJewel {
+	QuestActive 8095
+	NoNpcNear /^Kid#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap rachel
+		do conf lockMap_x 263
+		do conf lockMap_y 32
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_10_VincentJewelReturn {
+	QuestActive 8096
+	NpcNear /^Vincent#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_10_VincentJewelReturn"
+		do c LC_10: returning the jewel to Vincent, asked to tell Jenny.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_10_GoVincent {
+	QuestActive 8096
+	NoNpcNear /^Vincent#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_in01
+		do conf lockMap_x 384
+		do conf lockMap_y 246
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_11_JennyInform {
+	QuestActive 8097
+	NpcNear /^Jenny#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_11_JennyInform"
+		do c LC_11: telling Jenny that Phobe is okay.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_11_GoJenny {
+	QuestActive 8097
+	NoNpcNear /^Jenny#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap rachel
+		do conf lockMap_x 48
+		do conf lockMap_y 237
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro LC_12_VincentReward {
+	QuestActive 8098
+	NpcNear /^Vincent#ra_in01$/
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "LC_12_VincentReward: getting reward + letter for Zhed"
+		do c LC_12: getting the reward and the letter of recommendation for Zhed.
+		do talknpc $nx $ny
+	}
+}
+automacro LC_12_GoVincent {
+	QuestActive 8098
+	NoNpcNear /^Vincent#ra_in01$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_in01
+		do conf lockMap_x 384
+		do conf lockMap_y 246
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+
+##############################################################################
+# SECTION 3 — Sanctuary Quest, phase 1: gate opening (Track A, ra_tem_q 0-10)
+# No quest ID exists yet for this phase — chained purely by physical
+# progression (each trigger only reachable after the previous warp).
+##############################################################################
+
+automacro RS_01_NemmaGateLocked {
+	NpcNear /^Nemma#ra_temple$/
+	VarValue $rsGateStage 0
+	InInventory "Glacial Heart" >= 40
+	InInventory "Candy" >= 1
+	InInventory "Firecracker" >= 20
+	run-once 1
+	exclusive 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_01: Nemma reveals the gate is locked"
+		do c RS_01: talking to Nemma, the gate is locked.
+		do talknpc $nx $ny
+		$rsGateStage = 1
+	}
+}
+automacro RS_01_GoNemma {
+	VarValue $rsGateStage 0
+	InInventory "Glacial Heart" >= 40
+	InInventory "Candy" >= 1
+	InInventory "Firecracker" >= 20
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temple
+		do conf lockMap_x 116
+		do conf lockMap_y 174
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro RS_02_CandyKid {
+	NpcNear /^Kid#Candy Addict$/
+	VarValue $rsGateStage 1
+	exclusive 1
+	timeout 900
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_02: candy kid, RNG-gated, will retry on failure"
+		do c RS_02: talking to the Candy Kid about the secret window - has a 50% RNG gate, may need retries.
+		do talknpc $nx $ny r1 r0
+	}
+}
+automacro RS_02_GoCandyKid {
+	VarValue $rsGateStage 1
+	NoNpcNear /^Kid#Candy Addict$/
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap rachel
+		do conf lockMap_x 243
+		do conf lockMap_y 37
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+automacro RS_02b_CandyKidDone {
+	VarValue $rsGateStage 1
+	InMap rachel
+	timeout 900
+	call {
+		log "RS_02b: assume candy kid succeeded, moving on - adjust if it needs more retries"
+		$rsGateStage = 2
+	}
+}
+
+automacro RS_03_Window {
+	VarValue $rsGateStage 2
+	IsInMapAndCoordinate ra_temple 65..69 207..211
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_03: entering through the secret window"
+		do c RS_03: sneaking in through the window.
+		do talk resp 1
+		$rsGateStage = 3
+	}
+}
+automacro RS_03_GoWindow {
+	VarValue $rsGateStage 2
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temple
+		do conf lockMap_x 67
+		do conf lockMap_y 209
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_04_MazeStep1 {
+	VarValue $rsGateStage 3
+	IsInMapAndCoordinate que_rachel 58..62 78..82
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_04: maze checkpoint 1 - zawa01"
+		do c RS_04: exploring the dark hallway.
+		$rsGateStage = 4
+	}
+}
+automacro RS_04_GoMazeStep1 {
+	VarValue $rsGateStage 3
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_rachel
+		do conf lockMap_x 60
+		do conf lockMap_y 80
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_05_MazeStep2 {
+	VarValue $rsGateStage 4
+	IsInMapAndCoordinate que_rachel 57..61 110..114
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_05: maze checkpoint 2 - zawa02"
+		do c RS_05: hearing noises from the hallway.
+		$rsGateStage = 5
+	}
+}
+automacro RS_05_GoMazeStep2 {
+	VarValue $rsGateStage 4
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_rachel
+		do conf lockMap_x 59
+		do conf lockMap_y 112
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_06_MazeStep3 {
+	VarValue $rsGateStage 5
+	IsInMapAndCoordinate que_rachel 92..96 137..141
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_06: maze checkpoint 3 - zawa03"
+		do c RS_06: hearing commotion from the stairs.
+		$rsGateStage = 6
+	}
+}
+automacro RS_06_GoMazeStep3 {
+	VarValue $rsGateStage 5
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_rachel
+		do conf lockMap_x 94
+		do conf lockMap_y 139
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_07_MazeStep4 {
+	VarValue $rsGateStage 6
+	IsInMapAndCoordinate que_rachel 130..134 68..72
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_07: maze checkpoint 4 - zawa04, Crash!"
+		do c RS_07: hearing a crash from the stairs.
+		$rsGateStage = 7
+	}
+}
+automacro RS_07_GoMazeStep4 {
+	VarValue $rsGateStage 6
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_rachel
+		do conf lockMap_x 132
+		do conf lockMap_y 70
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_08_BloodySpot1 {
+	VarValue $rsGateStage 7
+	IsInMapAndCoordinate que_rachel 26..30 313..317
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_08: Bloody Spot, first investigate"
+		do c RS_08: investigating the dark spot on the floor.
+		do talk resp 0
+		$rsGateStage = 8
+	}
+}
+automacro RS_08_GoBloodySpot1 {
+	VarValue $rsGateStage 7
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_rachel
+		do conf lockMap_x 28
+		do conf lockMap_y 315
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_09_BloodySpot2 {
+	VarValue $rsGateStage 8
+	IsInMapAndCoordinate que_rachel 26..30 313..317
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_09: Bloody Spot, investigate again"
+		do c RS_09: investigating again.
+		do talk resp 0
+		$rsGateStage = 9
+	}
+}
+
+automacro RS_10_NemmaVoiceTriggers {
+	VarValue $rsGateStage 9
+	IsInMapAndCoordinate que_rachel 155..185 35..39
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_10: overhearing Panno's voice - any of the 5 nemma01-05 spots"
+		do c RS_10: overhearing a familiar voice.
+		$rsGateStage = 10
+	}
+}
+automacro RS_10_GoNemmaVoice {
+	VarValue $rsGateStage 9
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_rachel
+		do conf lockMap_x 170
+		do conf lockMap_y 37
+		do conf lockMap_randX 10
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_11_PushGate {
+	VarValue $rsGateStage 10
+	IsInMapAndCoordinate que_rachel 167..171 16..20
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_11: pushing the gate open, warps to ra_temple"
+		do c RS_11: pushing the gate open.
+		do talk resp 0
+		$rsGateStage = 11
+	}
+}
+automacro RS_11_GoPushGate {
+	VarValue $rsGateStage 10
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_rachel
+		do conf lockMap_x 169
+		do conf lockMap_y 18
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+
+##############################################################################
+# SECTION 4 — Sanctuary Quest, phase 2: Panno + Firecrackers (ra_tem_q 10-14)
+##############################################################################
+
+automacro RS_12_PannoDidYouOpenGate {
+	VarValue $rsGateStage 11
+	NpcNear /^Panno#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_12: Panno, 'Hey, did you open the gate?'"
+		do c RS_12: asking Panno about the gate.
+		do talknpc $nx $ny r2 r0 r0
+		$rsGateStage = 12
+	}
+}
+automacro RS_12_GoPanno {
+	VarValue $rsGateStage 11
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 170
+		do conf lockMap_y 46
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro RS_13_PannoLore {
+	VarValue $rsGateStage 12
+	NpcNear /^Panno#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_13: Panno's backstory, sets ra_tem_q to 12"
+		do c RS_13: hearing Panno's backstory about the temple.
+		do talknpc $nx $ny
+		$rsGateStage = 13
+	}
+}
+
+automacro RS_14_NemmaFirecrackerAsk {
+	VarValue $rsGateStage 13
+	NpcNear /^Nemma#ra_temple$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_14: Nemma asks for 20 Firecrackers"
+		do c RS_14: Nemma asks for 20 Firecrackers.
+		do talknpc $nx $ny
+		$rsGateStage = 14
+	}
+}
+automacro RS_14_GoNemma {
+	VarValue $rsGateStage 13
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temple
+		do conf lockMap_x 116
+		do conf lockMap_y 174
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+# RS_15_BuyFirecrackers moved to SECTION 0 (runs from the very start,
+# alongside the Glacial Heart/Candy farm, instead of waiting for rsGateStage
+# 14) — see RQ_00B_BuyFirecrackers.
+
+automacro RS_16_GiveFirecrackers {
+	VarValue $rsGateStage 14
+	InInventory "Firecracker" >= 20
+	NpcNear /^Nemma#ra_temple$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_16: delivering 20 Firecrackers to Nemma"
+		do c RS_16: delivering the Firecrackers to Nemma.
+		do talknpc $nx $ny r0
+		$trackA_done = 1
+	}
+}
+automacro RS_16_GoNemma {
+	VarValue $rsGateStage 14
+	InInventory "Firecracker" >= 20
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temple
+		do conf lockMap_x 116
+		do conf lockMap_y 174
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+
+##############################################################################
+# SECTION 5 — Convergence: deliver the letter to Zhed (completes Lost Child),
+# then Zhed's Glacial Heart request (needs trackA_done too)
+##############################################################################
+
+automacro RQ_17_ZhedLetter {
+	QuestActive 8099
+	NpcNear /^High Priest Zhed#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RQ_17: delivering the letter to Zhed, completes Lost Child Quest"
+		do c RQ_17: delivering Vincent's letter to High Priest Zhed.
+		do talknpc $nx $ny r0 r0 r0
+	}
+}
+automacro RQ_17_GoZhed {
+	QuestActive 8099
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 277
+		do conf lockMap_y 159
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+automacro RS_18_ZhedGlacialHeartRequest {
+	QuestComplete 8099
+	VarValue $trackA_done 1
+	NpcNear /^High Priest Zhed#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_18: Zhed asks for 40 Glacial Hearts and the pope visit"
+		do c RS_18: Zhed asks me to bring 40 Glacial Hearts and visit the pope.
+		do talknpc $nx $ny r1
+	}
+}
+automacro RS_18_GoZhed {
+	QuestComplete 8099
+	VarValue $trackA_done 1
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 277
+		do conf lockMap_y 159
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+
+##############################################################################
+# SECTION 6 — Pope's Office Guard + Pope visit (ra_tem_q 15-17 / quest 8100)
+##############################################################################
+
+automacro RS_19_GuardHandIn {
+	QuestActive 8100
+	InInventory "Glacial Heart" >= 40
+	NpcNear /^Pope's Office Guard#rac$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_19: handing 40 Glacial Hearts + recommendation to the Guard"
+		do c RS_19: showing the recommendation and 40 Glacial Hearts to the guard.
+		do talknpc $nx $ny
+	}
+}
+automacro RS_19_GoGuard {
+	QuestActive 8100
+	InInventory "Glacial Heart" >= 40
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 134
+		do conf lockMap_y 128
+		do conf lockMap_randX 3
+		do conf lockMap_randY 3
+	}
+}
+
+automacro RS_20_WalkToPope {
+	QuestActive 8100
+	InInventory "Glacial Heart" < 41
+	IsInMapAndCoordinate ra_temin 133..135 130..132
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_20: walking through the guarded door to the pope"
+		$rsPopeStage = 1
+	}
+}
+automacro RS_20_GoDoor {
+	VarValue $rsPopeStage 1
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 134
+		do conf lockMap_y 131
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+# The door (gyoin1#rachel) auto-warps to ra_temin,276,239, then another
+# invisible trigger (#rachel33) warps again to ra_temsky,99,11 — both are
+# OnTouch, no response needed, just walking through triggers them.
+automacro RS_21_WalkToPopeOffice {
+	VarValue $rsPopeStage 1
+	InMap ra_temsky
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_21: arrived in ra_temsky, heading to the Pope"
+		$rsPopeStage = 2
+	}
+}
+
+automacro RS_22_TalkPope {
+	VarValue $rsPopeStage 2
+	NpcNear /^Pope#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_22: talking to the Pope, two free-text prompts ahead"
+		do c RS_22: talking to the Pope.
+		do talknpc $nx $ny r0
+		pause 1
+		do talk text "I'm an adventurer from Rune-Midgarts."
+		pause 1
+		do talk cont
+		pause 1
+		do talk text "I've traveled and helped people along the way."
+		pause 1
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk resp 0
+		do talk cont
+		do talk resp 0
+		do talk cont
+		do talk cont
+		$rsPopeStage = 3
+	}
+}
+automacro RS_22_GoPope {
+	VarValue $rsPopeStage 2
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temsky
+		do conf lockMap_x 99
+		do conf lockMap_y 99
+		do conf lockMap_randX 3
+		do conf lockMap_randY 3
+	}
+}
+
+
+##############################################################################
+# SECTION 7 — Back to Zhed, Holy Ground warning, eavesdrop, Bekento question
+##############################################################################
+
+automacro RS_23_ZhedAfterPope {
+	VarValue $rsPopeStage 3
+	NpcNear /^High Priest Zhed#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_23: Zhed, 'she mentioned some Holy Ground', sent to wait"
+		do c RS_23: telling Zhed about the pope mentioning the Holy Ground.
+		do talknpc $nx $ny r0 r0
+		$rsEavesdropStage = 1
+	}
+}
+automacro RS_23_GoZhed {
+	VarValue $rsPopeStage 3
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 277
+		do conf lockMap_y 159
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+# Zhed's script auto-warps you to ra_temin,297,156 to wait; walking near
+# out1#rachel (293,144) triggers the "listen from the wall" hint and warps
+# you to 300,153, then hidden1#rachel (288,151) plays the eavesdropped
+# conversation with Niren automatically (OnTouch, no talknpc needed).
+automacro RS_24_Eavesdrop {
+	VarValue $rsEavesdropStage 1
+	IsInMapAndCoordinate ra_temin 286..290 149..153
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_24: eavesdropping on Zhed and Niren"
+		do c RS_24: eavesdropping on the conversation.
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk resp 0
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk cont
+		do talk resp 0
+		do talk cont
+		do talk cont
+		$rsEavesdropStage = 2
+	}
+}
+automacro RS_24_GoOut1 {
+	VarValue $rsEavesdropStage 1
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 293
+		do conf lockMap_y 144
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_25_ZhedBekento {
+	VarValue $rsEavesdropStage 2
+	NpcNear /^High Priest Zhed#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_25: asking Zhed about Bekento, gets the 'stay away' warning"
+		do c RS_25: asking Zhed about Bekento.
+		do talknpc $nx $ny r0
+	}
+}
+automacro RS_25_GoZhed {
+	VarValue $rsEavesdropStage 2
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 277
+		do conf lockMap_y 159
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
+
+
+##############################################################################
+# SECTION 8 — Pick up the key, enter the Holy Ground, get caught by Niren
+##############################################################################
+
+automacro RS_26_PickUpKey {
+	QuestActive 8104
+	VarValue $rsKeyStage 0
+	IsInMapAndCoordinate ra_temin 271..273 142..144
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_26: picking up the small key"
+		do c RS_26: picking up a small key.
+		do talk resp 1
+		$rsKeyStage = 1
+	}
+}
+automacro RS_26_GoKey {
+	QuestActive 8104
+	VarValue $rsKeyStage 0
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 272
+		do conf lockMap_y 143
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+# BUGFIX: RS_27_GoHolyGroundDoor previously had zero conditions (an
+# unconditioned automacro is always true), so it could fire at any time —
+# before the key was even picked up, or long after the quest finished — and
+# hijack lockMap out from under whatever else was running. ra_tem_q (and
+# quest 8104) does NOT advance between key pickup and door unlock in
+# quests_rachel.txt (only changequest 8104,8105 on the Niren encounter
+# afterward), so QuestActive 8104 alone can't disambiguate "go get key" from
+# "go unlock door" — hence the new $rsKeyStage gate, set to 1 by RS_26.
+automacro RS_27_UnlockHolyGround {
+	QuestActive 8104
+	VarValue $rsKeyStage 1
+	IsInMapAndCoordinate ra_temin 27..29 318..320
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_27: unlocking the Holy Ground entrance with the small key"
+		do c RS_27: unlocking the door to the Holy Ground with the small key.
+		do talk resp 1
+		$rsKeyStage = 2
+	}
+}
+automacro RS_27_GoHolyGroundDoor {
+	QuestActive 8104
+	VarValue $rsKeyStage 1
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 28
+		do conf lockMap_y 319
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+
+automacro RS_28_HolyGroundExplore {
+	InMap que_san04
+	VarValue $rsHolyGround 0
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_28: exploring the Holy Ground - que_san04, heading to imir3"
+		$rsHolyGround = 1
+	}
+}
+automacro RS_28_GoImir3 {
+	VarValue $rsHolyGround 1
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap que_san04
+		do conf lockMap_x 119
+		do conf lockMap_y 203
+		do conf lockMap_randX 2
+		do conf lockMap_randY 2
+	}
+}
+automacro RS_29_CaughtByNiren {
+	VarValue $rsHolyGround 1
+	IsInMapAndCoordinate que_san04 117..121 201..205
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_29: caught by Niren, blinded and warped back to Rachel"
+		do c RS_29: caught by Niren in the Holy Ground.
+		$rsHolyGround = 2
+	}
+}
+
+
+##############################################################################
+# SECTION 9 — Recover in Rachel, final Zhed conversation, quest complete
+##############################################################################
+
+automacro RS_30_RecoverInRachel {
+	VarValue $rsHolyGround 2
+	IsInMapAndCoordinate rachel 161..165 150..154
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_30: waking up back in Rachel"
+	}
+}
+
+automacro RS_31_ZhedFinal {
+	VarValue $rsHolyGround 2
+	NpcNear /^High Priest Zhed#rachel$/
+	exclusive 1
+	run-once 1
+	call {
+		$nx = &arg("$.NpcNearLastPos", 1)
+		$ny = &arg("$.NpcNearLastPos", 2)
+		log "RS_31: final conversation with Zhed, completes the quest"
+		do c RS_31: final conversation with High Priest Zhed. This completes the quest.
+		do talknpc $nx $ny r0
+		log "RachelQuests: DONE. Clearing lockMap - rule 2."
+		do c RachelQuests: Lost Child + Rachel Sanctuary quest chain complete.
+		do conf lockMap none
+		do conf lockMap_x none
+		do conf lockMap_y none
+		do conf lockMap_randX none
+		do conf lockMap_randY none
+	}
+}
+automacro RS_31_GoZhed {
+	VarValue $rsHolyGround 2
+	exclusive 1
+	timeout 900
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 277
+		do conf lockMap_y 159
+		do conf lockMap_randX 5
+		do conf lockMap_randY 5
+	}
+}
