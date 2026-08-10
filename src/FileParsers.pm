@@ -1024,6 +1024,17 @@ sub parsePortals {
 				$$r_hash{$portal}{'dest'}{$dest}{'allow_ticket'} = 0;
 				$$r_hash{$portal}{'dest'}{$dest}{'steps'} = $misc;
 			}
+
+			# EXACT marker (must be the first token of the talk sequence): some
+			# servers script a portal to ALSO require an NPC-style talk sequence,
+			# but only once you're standing exactly on its tile (e.g. an OnTouch
+			# airship boarding prompt) - unlike a normal NPC-portal, where you
+			# approach and talk to a real NPC actor standing a few tiles away.
+			# Strip the marker and flag it so the route walker knows to close the
+			# distance to 0 instead of stopping short (see Task::MapRoute).
+			if ($$r_hash{$portal}{'dest'}{$dest}{'steps'} =~ s/^EXACT\s+//) {
+				$$r_hash{$portal}{'dest'}{$dest}{'exact'} = 1;
+			}
 		}
 
 	}
@@ -1115,6 +1126,10 @@ sub parsePortalsAirship {
 			$$r_hash{$portal}{'dest'}{$dest}{'message'} = $message;
 			$$r_hash{$portal}{'dest'}{$dest}{enabled} = 1; # is available permanently (can be used when calculating a route)
 			if (defined $steps && $steps) {
+				# EXACT marker - see parsePortals() for the full explanation.
+				if ($steps =~ s/^EXACT\s+//) {
+					$$r_hash{$portal}{'dest'}{$dest}{'exact'} = 1;
+				}
 				$$r_hash{$portal}{'dest'}{$dest}{'steps'} = $steps;
 			}
 			#$$r_hash{$portal}{'dest'}{$dest}{active} = 0;

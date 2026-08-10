@@ -24,11 +24,23 @@ package Actor::Portal;
 use strict;
 use Actor;
 use base qw(Actor);
+use Globals qw($messageSender);
 use Translation qw(T);
 
 sub new {
 	my ($class) = @_;
 	return $class->SUPER::new(T('Portal'));
+}
+
+# Some servers script a portal to also require an NPC-style talk/response
+# sequence before it takes effect (e.g. an airship boarding confirmation).
+# Task::TalkNPC treats any actor found via portalsList the same as an NPC
+# once a talk sequence is defined for it (see tables/portals.txt's optional
+# [cost] [steps] fields), so it needs the same sendTalk() entry point.
+sub sendTalk {
+	my ($self) = @_;
+
+	$messageSender->sendTalk($self->{ID});
 }
 
 1;

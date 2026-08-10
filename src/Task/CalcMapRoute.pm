@@ -347,7 +347,10 @@ sub buildMapSolutionStep {
 		steps => $value->{is_airship}
 			? hashSafeGetValue(\%portals_airships, $from, 'dest', $to, 'steps')
 			: hashSafeGetValue(\%portals_lut, $from, 'dest', $to, 'steps'),
-		is_command => $value->{is_command} || 0,
+			exact => $value->{is_airship}
+				? hashSafeGetValue(\%portals_airships, $from, 'dest', $to, 'exact')
+				: hashSafeGetValue(\%portals_lut, $from, 'dest', $to, 'exact'),
+			is_command => $value->{is_command} || 0,
 		command => $value->{command},
 		is_teleportToSaveMap => $value->{is_teleportToSaveMap} || 0,
 		is_teleportItemWarp => $value->{is_teleportItemWarp} || 0,

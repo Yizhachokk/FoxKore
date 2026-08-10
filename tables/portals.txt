@@ -1,4 +1,10 @@
 #format: <source coordinate><destination coordinate>[zenny cost][allow ticket][conversation sequence]
+#[conversation sequence] may start with the literal word EXACT (e.g.
+#"1200 EXACT c r0") to mark a portal that requires standing exactly on its
+#tile before talking - not just approaching within a few tiles like a normal
+#NPC. Use this for OnTouch-scripted portals that also open an NPC-style talk
+#prompt (e.g. an airship boarding confirmation). See src/Task/MapRoute.pm's
+#{exact} handling and src/FileParsers.pm::parsePortals.
 alberta 195 151 alb2trea 62 69 500 c c c r0 n
 alb2trea 39 50 alberta 192 169 0 c r0 n
 alberta 245 45 lou_fild01 190 101 10000 c r1 c c r0
@@ -154,7 +160,9 @@ izlude 134 88 prontera 116 72 2000 1 c r2 c r0
 #yuno 152 187 rachel 119 135 2000 1 c r2 c r3
 yuno 327 108 aldebaran 168 112 1200 1 r~/(Warp|Teleport)/i r~/Al\ De\ Baran/i
 yuno 142 183 prontera 116 72 1800 1 c c c c c r0 c n
-payon 181 104 prontera 116 72 2000 1 c r2 c r0
+payon 181 104 prontera 116 72 1200 1 r~/(Warp|Teleport)/i r~/Prontera/i
+payon 181 104 alberta 114 58 1200 1 r~/(Warp|Teleport)/i r~/Alberta/i
+payon 181 104 morocc 160 61 1200 1 r~/(Warp|Teleport)/i r~/Morocc/i
 payon 175 226 prontera 116 72 1200 1 r~/(Warp|Teleport)/i r~/Prontera/i
 payon 175 226 alberta 114 58 1200 1 r~/(Warp|Teleport)/i r~/Alberta/i
 payon 175 226 morocc 160 61 1200 1 r~/(Warp|Teleport)/i r~/Morocc/i
@@ -3815,7 +3823,7 @@ airplane 243 73 yuno 92 260
 airplane 243 73 lighthalzen 302 75
 lhz_airport 142 60 lighthalzen 296 76
 lighthalzen 101 248 lhz_in01 111 126
-hugel 178 142 airplane 244 58
+hugel 178 142 airplane 244 58 1200 EXACT c r0
 airplane 243 73 yuno 90 262
 lhz_in01 149 179 lhz_in01 15 24
 lhz_in01 11 24 lhz_in01 145 178
