@@ -4164,3 +4164,5 @@ ra_in01 386 39 rachel 115 144
 rachel 81 33 ra_in01 237 198
 yuno 157 322 yuno_pre 69 13
 yuno_pre 69 10 yuno 157 317
+que_rachel 169 18 ra_temple 119 175
+ra_temin 134 131 ra_temin 276 239

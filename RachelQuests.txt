@@ -95,6 +95,7 @@ automacro RQ_00_Setup {
 		$inMaze = 0
 		$rsPopeStage = 0
 		$rsEavesdropStage = 0
+		$rsPastOut1 = 0
 		$rsKeyStage = 0
 		$rsHolyGround = 0
 		$lcMerchant1Done = 0
@@ -164,6 +165,41 @@ automacro RQ_00R1_RecoverSetup {
 	}
 }
 
+# BUGFIX: this used to also default every progress var to 0 right here,
+# relying on `priority 20` to run before RQ_00R2-R5 (priority 0) in the same
+# startup pass so the more specific recoveries would override these
+# defaults. Confirmed live that assumption is wrong: RQ_00R1 (InMapRegex,
+# hooked to packet_mapChange/in_game) and RQ_00R3 (InMap, its own separate
+# hook) don't reliably get dispatched in the same check cycle just because
+# they're both true after a reload - `priority` only orders automacros
+# competing within ONE dispatch pass, not across genuinely separate hook
+# firings. RQ_00R3 fired first and correctly recovered $rsGateStage=3, then
+# RQ_00R1 fired afterward and stomped it straight back to 0. Fixed by making
+# the baseline-zero case mutually exclusive by its own conditions instead of
+# by hoping for ordering: this only fires when NONE of RQ_00R2/R3/R4/R5's
+# own trigger conditions are true, so there's nothing for it to clobber.
+automacro RQ_00R1b_RecoverBaseline {
+	InMapRegex /^(rachel|ra_temple|ra_temin|ra_temsky|ra_in01|ra_fild01|que_rachel|que_san04|ra_san01|ice_dun01|xmas_dun01|hugel)$/
+	NotInMap que_rachel
+	NotInMap que_san04
+	QuestAllListInactive 8092,8100,8104
+	run-once 1
+	exclusive 1
+	call {
+		log "RQ_00R1b_RecoverBaseline: no more specific recovery signal applies, defaulting every progress var to 0/not-done as a baseline"
+		$trackA_done = 0
+		$trackB_done = 0
+		$rsGateStage = 0
+		$inMaze = 0
+		$rsPopeStage = 0
+		$rsEavesdropStage = 0
+		$rsPastOut1 = 0
+		$rsKeyStage = 0
+		$rsHolyGround = 0
+		$lcMerchant1Done = 0
+	}
+}
+
 # QuestActive 8100/8104 can only be active if Track A (gate opened, Panno's
 # story heard, Firecrackers delivered) already finished — RS_18 (which is
 # what starts quest 8100) itself requires $trackA_done 1. rsGateStage is set
@@ -174,10 +210,31 @@ automacro RQ_00R2_RecoverTrackADone {
 	run-once 1
 	exclusive 1
 	call {
-		log "RQ_00R2_RecoverTrackADone: live quest state shows Sanctuary Track A already finished, recovering \$trackA_done/\$rsGateStage/\$inMaze"
+		log "RQ_00R2_RecoverTrackADone: live quest state shows Sanctuary Track A already finished, recovering \$trackA_done/\$trackB_done/\$rsGateStage/\$inMaze"
 		$trackA_done = 1
+		$trackB_done = 1
 		$inMaze = 0
 		$rsGateStage = 99
+	}
+}
+
+# ra_temsky is only reachable through the guard hand-in + double-door warp
+# (RS_19-RS_21) - being physically there proves that whole leg is done, so
+# skip straight to talking to the Pope rather than leaving $rsPopeStage at
+# whatever a baseline reset left it (which would make RS_21 never match,
+# since it requires $rsPopeStage 1 specifically, not just being in
+# ra_temsky).
+automacro RQ_00R2b_RecoverAtPope {
+	InMap ra_temsky
+	run-once 1
+	exclusive 1
+	call {
+		log "RQ_00R2b_RecoverAtPope: already physically inside ra_temsky, recovering \$trackA_done/\$trackB_done/\$rsGateStage/\$inMaze/\$rsPopeStage"
+		$trackA_done = 1
+		$trackB_done = 1
+		$inMaze = 0
+		$rsGateStage = 99
+		$rsPopeStage = 2
 	}
 }
 
@@ -204,8 +261,9 @@ automacro RQ_00R4_RecoverHolyGround {
 	run-once 1
 	exclusive 1
 	call {
-		log "RQ_00R4_RecoverHolyGround: already physically inside the Holy Ground, recovering \$trackA_done/\$rsGateStage/\$inMaze/\$rsPopeStage/\$rsEavesdropStage/\$rsKeyStage/\$rsHolyGround"
+		log "RQ_00R4_RecoverHolyGround: already physically inside the Holy Ground, recovering \$trackA_done/\$trackB_done/\$rsGateStage/\$inMaze/\$rsPopeStage/\$rsEavesdropStage/\$rsKeyStage/\$rsHolyGround"
 		$trackA_done = 1
+		$trackB_done = 1
 		$inMaze = 0
 		$rsGateStage = 99
 		$rsPopeStage = 3
@@ -238,15 +296,26 @@ automacro RQ_00R5_RecoverMerchant1 {
 # SECTION 0.5 — Firecracker purchase, moved to the very start (per user
 # request) so it runs alongside the other loot prerequisites instead of
 # waiting for rsGateStage 14 later in the Sanctuary chain. Gated on
-# $trackA_done 0 (see RQ_01_Restock below for the same pattern) - once Track
-# A delivers the Firecrackers, none are needed again for the rest of the
-# chain, so stop buying/farming even if the inventory count later drops
-# below threshold for an unrelated reason.
+# `ConfigKeyNot raTrackADone 1` (see RQ_01_Restock below for the same
+# pattern) - once Track A delivers the Firecrackers, none are needed again
+# for the rest of the chain, so stop buying/farming even if the inventory
+# count later drops below threshold for an unrelated reason.
+#
+# BUGFIX: this was `VarValue $trackA_done 0` originally. $trackA_done is an
+# eventMacro var, wiped on every reload, and the narrow window between "Track
+# A actually finished" and "a specific quest-ID/map recovery signal exists
+# for it" (see SECTION 0.55's own documented gap) kept letting a reload
+# reset it back to 0 - sending the character all the way back to Hugel to
+# re-buy Firecrackers it already delivered, confirmed live more than once.
+# `raTrackADone` is a plain control/config.txt key instead (set by
+# RS_16_GiveFirecrackers alongside $trackA_done) - config.txt is a real file
+# that survives every reload, so this gate can't desync no matter which gap
+# a reload happens to land in.
 ##############################################################################
 
 automacro RQ_00B_BuyFirecrackers {
 	VarValue $setupDone 1
-	VarValue $trackA_done 0
+	ConfigKeyNot raTrackADone 1
 	InInventory "Firecracker" < 20
 	run-once 1
 	call {
@@ -268,7 +337,7 @@ automacro RQ_00B_BuyFirecrackers {
 # timeout) until InInventory clears the gate.
 automacro RQ_00B2_PurchaseFirecrackers {
 	VarValue $setupDone 1
-	VarValue $trackA_done 0
+	ConfigKeyNot raTrackADone 1
 	InInventory "Firecracker" < 20
 	NpcNear /^Party Supplies Shop$/
 	exclusive 1
@@ -378,7 +447,7 @@ automacro RQ_01_Restock {
 	InInventory "Glacial Heart" < 40
 	InInventory "Firecracker" < 20
 	InInventory "Candy" < 1
-	VarValue $trackA_done 0
+	ConfigKeyNot raTrackADone 1
 	NotInMap hugel
 	NotInMap hu_in01
 	exclusive 1
@@ -393,7 +462,7 @@ automacro RQ_01_Restock {
 automacro RQ_02_FarmGlacialHeart {
 	InInventory "Glacial Heart" < 40
 	InInventory "Firecracker" >= 20
-	VarValue $trackA_done 0
+	ConfigKeyNot raTrackADone 1
 	exclusive 1
 	timeout 900
 	call {
@@ -410,7 +479,7 @@ automacro RQ_02_FarmGlacialHeart {
 automacro RQ_03_CandyRestock {
 	InInventory "Candy" < 1
 	InInventory "Glacial Heart" >= 40
-	VarValue $trackA_done 0
+	ConfigKeyNot raTrackADone 1
 	exclusive 1
 	timeout 900
 	call {
@@ -423,7 +492,7 @@ automacro RQ_03_CandyRestock {
 automacro RQ_04_FarmCandy {
 	InInventory "Candy" < 1
 	InInventory "Glacial Heart" >= 40
-	VarValue $trackA_done 0
+	ConfigKeyNot raTrackADone 1
 	exclusive 1
 	timeout 900
 	call {
@@ -786,6 +855,22 @@ automacro LC_12_GoVincent {
 # progression (each trigger only reachable after the previous warp).
 ##############################################################################
 
+# BUGFIX: this used to blindly set $rsGateStage=1 as soon as this automacro
+# ran `do talknpc`, regardless of what Nemma actually said. Verified against
+# the live rAthena script (npc/quests/quests_rachel.txt, Nemma#ra_temple):
+# her dialogue branches hard on the real ra_tem_q - "gate hasn't opened yet"
+# only plays when ra_tem_q < 1; at ra_tem_q 1-9 she has a different "find the
+# secret entrance" line, and past ra_tem_q 9 (gate already open) she has
+# celebratory flavor text - none of which reset progress. Confirmed live:
+# after $rsGateStage got reset to 0 by a baseline-recovery pass while the
+# real ra_tem_q was already ~10 (gate long since pushed open), this
+# automacro still fired, still got a response from Nemma (just not the
+# "gate is locked" one), and still blindly set $rsGateStage=1 - sending the
+# character all the way back to Candy Kid despite already being past the
+# maze. Split so the actual state advance only happens on the real matching
+# text (event-driven, same pattern as every other OnTouch/NPC-branch fix in
+# this file) - talking to Nemma when she's not actually gate-locked now just
+# does nothing instead of asserting false progress.
 automacro RS_01_NemmaGateLocked {
 	NpcNear /^Nemma(#.*)?$/
 	VarValue $rsGateStage 0
@@ -797,9 +882,18 @@ automacro RS_01_NemmaGateLocked {
 	call {
 		$nx = &arg("$.NpcNearLastPos", 1)
 		$ny = &arg("$.NpcNearLastPos", 2)
-		log "RS_01: Nemma reveals the gate is locked"
-		do c RS_01: talking to Nemma, the gate is locked.
+		log "RS_01: talking to Nemma"
+		do c RS_01: talking to Nemma about the gate.
 		do talknpc $nx $ny
+	}
+}
+automacro RS_01a_NemmaGateLockedConfirm {
+	NpcMsg /hasn't opened yet/
+	VarValue $rsGateStage 0
+	exclusive 1
+	timeout 3
+	call {
+		log "RS_01a: Nemma confirms the gate is locked"
 		$rsGateStage = 1
 	}
 }
@@ -830,17 +924,66 @@ automacro RS_01_GoNemma {
 # ra_tem_q is behind what $rsGateStage thinks it is). So: send only the first
 # choice here, then gate the second response — and the stage advance — on
 # actually seeing the kid's line that only appears on the lucky roll.
+#
+# BUGFIX: this used to be `exclusive 1`. eventMacro tracks a single global
+# "automacro checking status", and starting a non-interruptible (exclusive)
+# macro flips it to PAUSED_BY_EXCLUSIVE_MACRO for as long as that macro's
+# Runner is active (Runner.pm:209) — `do talknpc` keeps the Runner active for
+# the whole conversation, not just the dispatch. While paused, EVENT-type
+# conditions (like RS_02c's `NpcMsg`) are never allowed to fire at all
+# (Core.pm:1469 explicitly requires CHECKING_AUTOMACROS/CHECKING_FORCED_BY_USER)
+# - and since NpcMsg is a one-shot event, not a polled state, a message that
+# streams by while paused is gone for good, never re-evaluated once the pause
+# lifts. The kid's "really cool" line arrives strictly *during* this
+# automacro's own `do talknpc` conversation, so `exclusive 1` here was
+# structurally deadlocking RS_02c against the exact message it needs to see
+# - confirmed live: the RNG-lucky-roll response menu was left sitting
+# unanswered ("Type 'talk resp #' to choose a response") forever. Dropping
+# `exclusive 1` (safe: `running_status` already stops this automacro
+# retriggering itself while its own conversation is still active, with or
+# without `exclusive`) lets RS_02c react in real time.
+#
+# BUGFIX: this used to send `r1` as part of the sequence, assuming the
+# "do you like candy?" menu always appears. On a repeat visit (already talked
+# to him before) the kid has a completely different, shorter brush-off line
+# ("Why don't you peep through the windows... Gosh! Some people!") that
+# closes the dialogue with NO menu at all - confirmed live:
+# "There are still steps to be done but the conversation has already ended
+# (current step: r1)". Sequences are rigid (no "answer this IF it shows up"
+# branching), so instead of guessing which variant will play, send an empty
+# sequence (autoTalkCont handles every plain continue by itself) and let
+# RS_02a_CandyKidMenu answer the real "do you like candy?" menu reactively,
+# the same event-driven way RS_02c/RS_02d already handle the lines after it -
+# if the brush-off variant plays instead, no menu ever appears and nothing
+# needs to answer, so the dialogue just closes cleanly.
+#
+# BUGFIX: `timeout` dropped from 900 to 5. The kid apparently has more than
+# two dialogue variants (RS_02d/RS_02e chase two of them by exact phrase, and
+# a third, uncaught one showed up live) - rather than keep whack-a-moling
+# every possible brush-off line, a short timeout means this automacro itself
+# retries any outcome none of the NpcMsg catches recognized, a few seconds
+# later. Safe at 5s: `running_status` still blocks it from firing while a
+# conversation it started is genuinely still open.
 automacro RS_02_CandyKid {
 	NpcNear /^Kid#Candy Addict$/
 	VarValue $rsGateStage 1
-	exclusive 1
-	timeout 900
+	timeout 5
 	call {
 		$nx = &arg("$.NpcNearLastPos", 1)
 		$ny = &arg("$.NpcNearLastPos", 2)
 		log "RS_02: candy kid, RNG-gated, will retry on failure"
 		do c RS_02: talking to the Candy Kid about the secret window - has a 50% RNG gate, may need retries.
-		do talknpc $nx $ny r1
+		do talknpc $nx $ny
+	}
+}
+automacro RS_02a_CandyKidMenu {
+	NpcMsg /like candy/
+	VarValue $rsGateStage 1
+	exclusive 1
+	timeout 3
+	call {
+		log "RS_02a: candy kid asked if I like candy, saying yes"
+		do talk resp 1
 	}
 }
 automacro RS_02_GoCandyKid {
@@ -868,17 +1011,87 @@ automacro RS_02c_CandyKidLuckyRoll {
 	}
 }
 
-automacro RS_03_Window {
-	VarValue $rsGateStage 2
-	IsInMapAndCoordinate ra_temple 65..69 207..211
+# Unlucky-roll branch (same pattern as RS_02c, and as this account's own
+# Direction_East/ShipStay-style NpcMsg catches in msk.txt): the failed roll
+# closes the dialogue on its own with no menu ("I tricked you! You big big
+# dummy!"), so catch that line and retry immediately instead of waiting on
+# RS_02_CandyKid's own 900s timeout. Safe to be `exclusive 1` here because
+# RS_02_CandyKid itself is NOT exclusive (see its comment above) - the
+# checking status never goes into PAUSED_BY_EXCLUSIVE_MACRO while its
+# `do talknpc` conversation runs, so this NpcMsg catch isn't starved.
+automacro RS_02d_CandyKidTricked {
+	NpcMsg /tricked you/
+	VarValue $rsGateStage 1
 	exclusive 1
-	run-once 1
+	timeout 3
 	call {
-		log "RS_03: entering through the secret window"
+		log "RS_02d: candy kid RNG failed - tricked - retrying immediately"
+		do talknpc 243 37
+	}
+}
+
+# A third, distinct branch - not part of the RNG mechanic at all: no menu,
+# just "why don't you peep through the windows in the temple..." Confirmed
+# live this is what plays on a re-visit once he's already answered enough
+# times - retrying (talking to him again) just replays the exact same
+# brush-off forever, it never goes back to offering the real menu. Treat it
+# as "he's already told me everything he's going to" and advance the stage
+# directly instead of chasing another attempt, same as RS_02c's lucky-roll
+# outcome.
+automacro RS_02e_CandyKidAnnoyed {
+	NpcMsg /peep through/
+	VarValue $rsGateStage 1
+	exclusive 1
+	timeout 5
+	call {
+		log "RS_02e: candy kid has nothing more to say, treating the gate as already passed"
+		$rsGateStage = 2
+	}
+}
+
+# BUGFIX: this used to be a `VarValue $rsGateStage 2` + `IsInMapAndCoordinate`
+# position check, `run-once 1`, that fired `do talk resp 1` the instant the
+# character reached the tile - but the OnTouch trigger's dialogue takes a
+# network round-trip to actually open, so this consistently lost the race
+# ("You are not talkning to an npc"). Replaced with automacros that react to
+# the dialogue's own text (NpcMsg, event-driven - no race, matches 100% of
+# the time it's actually shown) instead of guessing from position/timing,
+# and always answer "Enter Through Window" (resp 1) - this tile is only ever
+# routed to by RS_03_GoWindow/RS_03b_ReenterWindow below, both gated on
+# $rsGateStage 2/$inMaze 1, so by the time this dialogue can actually appear
+# we're always meant to go in; no separate "not ready yet" branch needed.
+#
+# Split in two because a single unconditional "always set $rsGateStage=3"
+# would clobber real progress on a RE-entry: RS_03b_ReenterWindow re-walks
+# this same tile whenever $inMaze=1 but the character got knocked/reloaded
+# out of que_rachel mid-maze (checkpoint could be anywhere from 3 to 10), and
+# its whole point (see its own comment) is resuming at whatever checkpoint
+# it was on, not resetting to 3. RS_03_WindowEnter only fires (and only
+# advances state) on the genuine first entry ($rsGateStage still 2);
+# RS_03_WindowReenter fires for every later re-entry ($inMaze already 1) and
+# answers the same way without touching $rsGateStage.
+automacro RS_03_WindowEnter {
+	NpcMsg /easily enter/
+	VarValue $rsGateStage 2
+	exclusive 1
+	priority 5
+	timeout 3
+	call {
+		log "RS_03_WindowEnter: entering through the secret window"
 		do c RS_03: sneaking in through the window.
 		do talk resp 1
 		$rsGateStage = 3
 		$inMaze = 1
+	}
+}
+automacro RS_03_WindowReenter {
+	NpcMsg /easily enter/
+	VarValue $inMaze 1
+	exclusive 1
+	timeout 3
+	call {
+		log "RS_03_WindowReenter: re-entering, resuming at the current checkpoint"
+		do talk resp 1
 	}
 }
 automacro RS_03_GoWindow {
@@ -918,18 +1131,6 @@ automacro RS_03b_ReenterWindow {
 		do conf lockMap_randY 1
 	}
 }
-automacro RS_03c_ReenterWindowTalk {
-	VarValue $inMaze 1
-	IsInMapAndCoordinate ra_temple 65..69 207..211
-	exclusive 1
-	timeout 5
-	call {
-		log "RS_03c: re-entering through the secret window"
-		do c RS_03c: sneaking back in through the window.
-		do talk resp 0
-	}
-}
-
 automacro RS_04_MazeStep1 {
 	VarValue $rsGateStage 3
 	IsInMapAndCoordinate que_rachel 58..62 78..82
@@ -1030,14 +1231,26 @@ automacro RS_07_GoMazeStep4 {
 	}
 }
 
+# BUGFIX: same race as the window/gate - IsInMapAndCoordinate +
+# `run-once 1` + immediate `do talk resp 0` fired before the OnTouch dialogue
+# actually opened ("Talking to wrong npc"). Worse here: confirmed live the
+# real server-side ra_tem_q can already be AHEAD of whatever $rsGateStage
+# guesses (a manual state recovery landed back on this tile while the real
+# server state was already at the "really creepy" / ra_tem_q 7 variant, not
+# the "darker than" / ra_tem_q 6 one this automacro assumed - the dialogue
+# that actually played didn't match what we tried to answer). Verified the
+# exact wording against the live rAthena script
+# (npc/quests/quests_rachel.txt, "Bloody Spot" OnTouch). Rather than gate on
+# our own guess, react to whichever text the server actually shows for real -
+# self-correcting regardless of what $rsGateStage currently thinks, same
+# principle as the window's NpcMsg catches above.
 automacro RS_08_BloodySpot1 {
-	VarValue $rsGateStage 7
-	IsInMapAndCoordinate que_rachel 26..30 313..317
+	NpcMsg /darker than/
+	VarValue $inMaze 1
 	exclusive 1
-	run-once 1
+	timeout 3
 	call {
 		log "RS_08: Bloody Spot, first investigate"
-		do c RS_08: investigating the dark spot on the floor.
 		do talk resp 0
 		$rsGateStage = 8
 	}
@@ -1057,13 +1270,12 @@ automacro RS_08_GoBloodySpot1 {
 }
 
 automacro RS_09_BloodySpot2 {
-	VarValue $rsGateStage 8
-	IsInMapAndCoordinate que_rachel 26..30 313..317
+	NpcMsg /really creepy/
+	VarValue $inMaze 1
 	exclusive 1
-	run-once 1
+	timeout 3
 	call {
 		log "RS_09: Bloody Spot, investigate again"
-		do c RS_09: investigating again.
 		do talk resp 0
 		$rsGateStage = 9
 	}
@@ -1094,11 +1306,20 @@ automacro RS_10_GoNemmaVoice {
 	}
 }
 
+# BUGFIX: same race as the window (RS_03) - `do talk resp 0` fired the
+# instant the tile was reached, before the OnTouch dialogue actually opened
+# ("You are not talkning to an npc"). Worse than the window case: the real
+# "The gate is closed... 0 Push Gate / 1 Examine Gate / ..." menu was then
+# left sitting completely unanswered - confirmed live - while $rsGateStage
+# still advanced to 11 and $inMaze to 0, so the rest of the chain (RS_12
+# onward) proceeded as if the gate were open when it never actually was.
+# Switched to catching the dialogue's own text (NpcMsg, no race, matches
+# 100% of the time it's shown), same pattern as RS_03_WindowEnter.
 automacro RS_11_PushGate {
+	NpcMsg /gate is closed/
 	VarValue $rsGateStage 10
-	IsInMapAndCoordinate que_rachel 167..171 16..20
 	exclusive 1
-	run-once 1
+	timeout 3
 	call {
 		log "RS_11: pushing the gate open, warps to ra_temple"
 		do c RS_11: pushing the gate open.
@@ -1212,6 +1433,7 @@ automacro RS_16_GiveFirecrackers {
 		do c RS_16: delivering the Firecrackers to Nemma.
 		do talknpc $nx $ny r0
 		$trackA_done = 1
+		do conf -f raTrackADone 1
 	}
 }
 automacro RS_16_GoNemma {
@@ -1234,8 +1456,35 @@ automacro RS_16_GoNemma {
 # then Zhed's Glacial Heart request (needs trackA_done too)
 ##############################################################################
 
+# BUGFIX: ra_temin (Zhed's building) is NOT freely walkable even though
+# tables/portals.txt lists a plain ra_temple->ra_temin portal — the server
+# scripts that entrance closed until Track A's gate is open (ra_tem_q, see
+# SECTION 3), which the portal table has no concept of. Track A and Track B
+# only look independent up to this point; from here on Track B is physically
+# blocked without Track A. Confirmed live: quest 8099 active, but "the
+# entrance is still closed" trying to reach Zhed. Gate on $trackA_done 1
+# (set once RS_16 delivers the Firecrackers) so Track B just waits here
+# instead of routing into a locked door, while Track A's own RS_01-RS_16
+# automacros keep progressing independently in the meantime.
+# BUGFIX: downstream steps used to gate on `QuestComplete 8099` instead of a
+# var set here - but QuestComplete only reads true in the narrow window
+# while the quest is still active AND its requirements are met
+# (getQuestStatus in eventMacro/Utilities.pm returns 'inactive' the instant
+# `!$quest->{active}`). The server deletes quest 8099 outright once Zhed
+# accepts the letter ("Quest: Vincent's Recommendation (8099) has been
+# deleted." - confirmed live), so by the time any automacro re-checks,
+# QuestComplete 8099 has already gone permanently false - same trap as
+# QuestInactive 8089 earlier. Setting $trackB_done here, ourselves, the
+# moment the letter is actually delivered, sidesteps relying on quest-list
+# state that the server doesn't keep around.
+# BUGFIX: `VarValue $trackA_done 1` used to gate these two - swapped for
+# `ConfigKey raTrackADone 1` (see SECTION 0.5's comment for why the var
+# alone can't be trusted here). Confirmed live: reload landed in this exact
+# gap again and both $trackA_done and $trackB_done came back 0, even with
+# raTrackADone already 1 in control/config.txt from RS_16.
 automacro RQ_17_ZhedLetter {
 	QuestActive 8099
+	ConfigKey raTrackADone 1
 	NpcNear /^High Priest Zhed(#.*)?$/
 	exclusive 1
 	run-once 1
@@ -1245,10 +1494,13 @@ automacro RQ_17_ZhedLetter {
 		log "RQ_17: delivering the letter to Zhed, completes Lost Child Quest"
 		do c RQ_17: delivering Vincent's letter to High Priest Zhed.
 		do talknpc $nx $ny r0 r0 r0
+		$trackB_done = 1
+		do conf -f raTrackBDone 1
 	}
 }
 automacro RQ_17_GoZhed {
 	QuestActive 8099
+	ConfigKey raTrackADone 1
 	exclusive 1
 	timeout 900
 	call {
@@ -1260,9 +1512,17 @@ automacro RQ_17_GoZhed {
 	}
 }
 
+# BUGFIX: `raTrackADone`/`raTrackBDone` are permanently true once set (that's
+# the whole point - see SECTION 0.5), so on their own they can't tell
+# "haven't asked Zhed yet" from "already asked, quest 8100 running, guard/
+# door/pope steps in progress". Confirmed live: a reload while already past
+# this step (working on RS_19+) sent the character straight back to Zhed
+# again. QuestAllListInactive 8100,8104 (same pattern as LC_01's guard)
+# closes that - won't fire once either of those later quest IDs is active.
 automacro RS_18_ZhedGlacialHeartRequest {
-	QuestComplete 8099
-	VarValue $trackA_done 1
+	ConfigKey raTrackBDone 1
+	ConfigKey raTrackADone 1
+	QuestAllListInactive 8100,8104
 	NpcNear /^High Priest Zhed(#.*)?$/
 	exclusive 1
 	run-once 1
@@ -1275,8 +1535,9 @@ automacro RS_18_ZhedGlacialHeartRequest {
 	}
 }
 automacro RS_18_GoZhed {
-	QuestComplete 8099
-	VarValue $trackA_done 1
+	ConfigKey raTrackBDone 1
+	ConfigKey raTrackADone 1
+	QuestAllListInactive 8100,8104
 	exclusive 1
 	timeout 900
 	call {
@@ -1293,6 +1554,14 @@ automacro RS_18_GoZhed {
 # SECTION 6 — Pope's Office Guard + Pope visit (ra_tem_q 15-17 / quest 8100)
 ##############################################################################
 
+# BUGFIX: this used to not set any var at all, leaving RS_20_GoDoor
+# (VarValue $rsPopeStage 1) and RS_20_WalkToPope (the only thing that used
+# to set $rsPopeStage to 1, gated on already physically standing in the
+# 133..135/130..132 door zone) circularly dependent on each other - nothing
+# ever routed the character into that zone in the first place. Confirmed
+# live: hand-in completed, guard let the character through, then nothing
+# else fired at all. Setting $rsPopeStage=1 here, right after a successful
+# hand-in, breaks the cycle - RS_20_GoDoor can now actually route to the door.
 automacro RS_19_GuardHandIn {
 	QuestActive 8100
 	InInventory "Glacial Heart" >= 40
@@ -1305,6 +1574,7 @@ automacro RS_19_GuardHandIn {
 		log "RS_19: handing 40 Glacial Hearts + recommendation to the Guard"
 		do c RS_19: showing the recommendation and 40 Glacial Hearts to the guard.
 		do talknpc $nx $ny
+		$rsPopeStage = 1
 	}
 }
 automacro RS_19_GoGuard {
@@ -1332,22 +1602,36 @@ automacro RS_20_WalkToPope {
 		$rsPopeStage = 1
 	}
 }
+# The door (gyoin1#rachel, 134,131) auto-warps to ra_temin,276,239 (exact
+# landing coordinate confirmed against the live rAthena script), then
+# another invisible trigger (#rachel33, 275,226) warps again to
+# ra_temsky,99,11 - both are OnTouch, no response needed, just walking
+# through triggers them.
+#
+# BUGFIX: this used to lock onto the door's own coordinates (134,131). Once
+# the character had already been warped past it to (276,239), OpenKore's
+# core lockMap logic walked straight back to 134,131, re-triggering the
+# door, warping back to 276,239, walking back again... an infinite
+# ping-pong, confirmed live. Locking onto the final destination (ra_temsky,
+# same coordinates RS_22_GoPope targets below) instead lets OpenKore's own
+# route calculation chain through both OnTouch warps via the portal
+# entries it auto-records the first time they're walked through
+# ([processPortalRecording], confirmed live already happened once this
+# session) - no intermediate waypoint for the character to walk back into.
 automacro RS_20_GoDoor {
 	VarValue $rsPopeStage 1
+	NotInMap ra_temsky
 	exclusive 1
 	timeout 900
 	call {
-		do conf lockMap ra_temin
-		do conf lockMap_x 134
-		do conf lockMap_y 131
-		do conf lockMap_randX 1
-		do conf lockMap_randY 1
+		do conf lockMap ra_temsky
+		do conf lockMap_x 99
+		do conf lockMap_y 99
+		do conf lockMap_randX 3
+		do conf lockMap_randY 3
 	}
 }
 
-# The door (gyoin1#rachel) auto-warps to ra_temin,276,239, then another
-# invisible trigger (#rachel33) warps again to ra_temsky,99,11 — both are
-# OnTouch, no response needed, just walking through triggers them.
 automacro RS_21_WalkToPopeOffice {
 	VarValue $rsPopeStage 1
 	InMap ra_temsky
@@ -1438,47 +1722,100 @@ automacro RS_23_GoZhed {
 # out1#rachel (293,144) triggers the "listen from the wall" hint and warps
 # you to 300,153, then hidden1#rachel (288,151) plays the eavesdropped
 # conversation with Niren automatically (OnTouch, no talknpc needed).
-automacro RS_24_Eavesdrop {
+#
+# BUGFIX: this used to be a single automacro sending a fixed 20-line
+# do-talk-cont/resp sequence the instant the character reached the tile.
+# Confirmed live two problems: (1) autoTalkCont DOES also auto-continue
+# OnTouch dialogues (previously "unverified" per this file's own header
+# caveat #1) - the explicit `do talk cont` lines raced against and
+# collided with autoTalkCont's own auto-presses ("talk is defined and
+# nameID is wrong... Cleaning all remaining conversation steps"), wiping
+# the whole sequence out before it ever reached the two real response
+# menus; (2) the fixed line-count assumed a specific dialogue path that
+# doesn't need re-deriving by counting `mes` lines by hand. Replaced with
+# two NpcMsg catches keyed on the exact line each of Niren's two
+# select()-menus (verified against the live rAthena script,
+# npc/quests/quests_rachel.txt) follows - `autoTalkCont` handles every
+# plain continue on its own, these two only need to answer the menus
+# themselves (both single-option, so index 0 both times).
+automacro RS_24_EavesdropResp1 {
+	NpcMsg /what did you think of her/
 	VarValue $rsEavesdropStage 1
-	IsInMapAndCoordinate ra_temin 286..290 149..153
 	exclusive 1
-	run-once 1
+	timeout 3
 	call {
-		log "RS_24: eavesdropping on Zhed and Niren"
-		do c RS_24: eavesdropping on the conversation.
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
+		log "RS_24: eavesdrop - answering Niren's first question"
 		do talk resp 0
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
-		do talk cont
+	}
+}
+# BUGFIX: this used to catch `/how did you come to know/` - Niren's own
+# line asking the question - but that line isn't immediately followed by
+# the menu; the character's own one-line thought "(Bekento?)" plays first
+# (another autoTalkCont-driven continue in between), so `resp 0` fired one
+# beat too early and raced the same way as every position-triggered catch
+# earlier in this file. `Bekento\?` matches only that final thought line
+# right before the menu - Niren's own line has "Bekento, er, I mean" (no
+# question mark directly after), so it can't match early there.
+automacro RS_24_EavesdropResp2 {
+	NpcMsg /Bekento\?/
+	VarValue $rsEavesdropStage 1
+	exclusive 1
+	timeout 3
+	call {
+		log "RS_24: eavesdrop - answering Niren's second question, eavesdrop complete"
 		do talk resp 0
-		do talk cont
-		do talk cont
 		$rsEavesdropStage = 2
 	}
 }
+# BUGFIX: this used to lock onto out1's own tile (293,144). Same ping-pong
+# as the guarded door (RS_20): once out1's OnTouch trigger warps the
+# character to (300,153), lockMap was still pointing at 293,144, so the core
+# AI walked straight back into out1, re-triggering the same warp forever -
+# confirmed live. Locking onto hidden1's zone (288,151, well within
+# RS_24_Eavesdrop's own 286..290/149..153 trigger box) directly instead
+# means there's no waypoint left behind to walk back into once past it.
+# BUGFIX: locking straight onto hidden1 (288,151) - via `conf lockMap` or a
+# one-shot `do move`, both tried live - keeps re-triggering out1 (293,144,
+# 3-tile radius) forever: whatever route gets calculated from wherever the
+# character currently is, it keeps clipping out1's zone, warping back to
+# (300,153), recalculating, clipping it again. Split into two explicit legs
+# instead: walk into out1 deliberately first (expected - that's what shows
+# the "still talking... listen from the wall" hint and warps to 300,153),
+# then - only once physically confirmed past it - walk on to hidden1 as a
+# second, separate leg. $rsPastOut1 tracks which leg we're on.
 automacro RS_24_GoOut1 {
 	VarValue $rsEavesdropStage 1
+	VarValue $rsPastOut1 0
 	exclusive 1
-	timeout 900
+	timeout 30
 	call {
 		do conf lockMap ra_temin
 		do conf lockMap_x 293
 		do conf lockMap_y 144
+		do conf lockMap_randX 1
+		do conf lockMap_randY 1
+	}
+}
+automacro RS_24_PastOut1 {
+	VarValue $rsEavesdropStage 1
+	VarValue $rsPastOut1 0
+	IsInMapAndCoordinate ra_temin 298..302 151..155
+	exclusive 1
+	run-once 1
+	call {
+		log "RS_24: past out1, landed at the warp target - heading to hidden1"
+		$rsPastOut1 = 1
+	}
+}
+automacro RS_24_GoHidden1 {
+	VarValue $rsEavesdropStage 1
+	VarValue $rsPastOut1 1
+	exclusive 1
+	timeout 30
+	call {
+		do conf lockMap ra_temin
+		do conf lockMap_x 288
+		do conf lockMap_y 151
 		do conf lockMap_randX 1
 		do conf lockMap_randY 1
 	}
