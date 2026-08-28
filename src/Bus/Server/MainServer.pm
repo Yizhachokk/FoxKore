@@ -69,7 +69,7 @@ sub onClientExit {
 sub messageReceived {
 	my ($self, $client, $MID, $args) = @_;
 
-	$self->log("Message: $MID (from $client->{name})\n");
+	debug("[Bus::Server::MainServer] Message: $MID (from $client->{name})\n", "bus");
 
 	# Process known messages internally.
 	# Deliver unknown messages to client(s).
@@ -192,7 +192,7 @@ sub processLIST_CLIENTS {
 sub iterate {
 	my ($self, $timeout) = @_;
 	$self->{loop_i} = 1 if (!exists $self->{loop_i} || $self->{loop_i} > 100);
-	message("[Bus::Server::MainServer] " .scalar(localtime) . " Iterate ".($self->{loop_i}++)."\n", "bus");
+	debug("[Bus::Server::MainServer] " .scalar(localtime) . " Iterate ".($self->{loop_i}++)."\n", "bus");
 	$self->SUPER::iterate($timeout);
 }
 

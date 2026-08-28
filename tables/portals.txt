@@ -3036,8 +3036,8 @@ lhz_airport 143 49 lhz_airport 142 40 0 c r0 c r0
 # Izlude airship
 izlude 206 55 airplane_01 244 58 1200 c r0 c r0
 
-# Rachel airship
-#(portal with dialog) ra_fild12 295 208 airplane_01 245 60 1200 c r0
+# Rachel airship — see the active EXACT-flagged entry near "ra_fild12 295 208
+# airplane_01 245 60" further down in this file.
 
 prt_fild03 371 256 prt_monk 25 248
 prt_monk 245 137 monk_in 98 183
@@ -4087,7 +4087,7 @@ mjolnir_07 383 233 mjolnir_07 376 225
 mjolnir_07 383 362 mjolnir_07 373 356
 gef_fild06 20 304 glast_01 370 304
 yuno 158 15 yuno_fild04 231 284
-ra_fild12 295 208 airplane_01 245 60
+ra_fild12 295 208 airplane_01 245 60 1200 EXACT c r0
 ve_fild06 81 177 ve_fild04 115 55
 ve_fild04 115 50 ve_fild06 80 183
 veins 218 361 ve_fild06 148 225
@@ -4164,3 +4164,5 @@ ra_in01 386 39 rachel 115 144
 rachel 81 33 ra_in01 237 198
 yuno 157 322 yuno_pre 69 13
 yuno_pre 69 10 yuno 157 317
+que_rachel 169 18 ra_temple 119 175
+ra_temin 134 131 ra_temin 276 239

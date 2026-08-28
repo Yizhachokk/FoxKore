@@ -77,7 +77,7 @@ sub __start {
 		# Log active connections periodically
 		if (time - $last_conn_log > 60) {
 			my $count = scalar @{$server->clients()};
-			printf "Active connections: $count\n";
+			printf "Active connections: $count\n" unless ($options{quiet});
 			$last_conn_log = time;
 		}
 	}

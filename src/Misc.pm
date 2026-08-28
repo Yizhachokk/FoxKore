@@ -6934,11 +6934,28 @@ sub autoNpcTalk {
 	my $routeIndex = AI::findAction("route");
 	return if (defined $routeIndex && AI::args($routeIndex)->getSubtask && UNIVERSAL::isa(AI::args($routeIndex)->getSubtask, 'Task::TalkNPC'));
 
-	my $routeIndex = AI::findAction("route", 1);
-	return if (defined $routeIndex && AI::args($routeIndex)->getSubtask && UNIVERSAL::isa(AI::args($routeIndex)->getSubtask, 'Task::TalkNPC'));
+	my $routeIndex2 = AI::findAction("route", 1);
+	return if (defined $routeIndex2 && AI::args($routeIndex2)->getSubtask && UNIVERSAL::isa(AI::args($routeIndex2)->getSubtask, 'Task::TalkNPC'));
+
+	# The server can send this unsolicited npc_talk packet for an
+	# EXACT-flagged portal (see FileParsers::parsePortals - an OnTouch portal
+	# that also needs an NPC-style talk sequence) before Task::MapRoute's own
+	# setNpcTalk() gets a chance to run: the OnTouch trigger fires the instant
+	# we're on the tile, which can beat our own actorFinishedMovement polling.
+	# Reuse that portal's pre-defined steps here instead of leaving this
+	# fallback task with no sequence at all.
+	my $sequence;
+	for my $idx (grep { defined } ($routeIndex, $routeIndex2)) {
+		my $routeTask = AI::args($idx);
+		next unless $routeTask && UNIVERSAL::isa($routeTask, 'Task::MapRoute');
+		my $step = $routeTask->{mapSolution} && $routeTask->{mapSolution}[0];
+		next unless $step && $step->{exact} && $step->{steps};
+		$sequence = $step->{steps};
+		last;
+	}
 
 	debug "An unexpected npc conversation has started, auto-creating a TalkNPC Task\n";
-	my $task = Task::TalkNPC->new(type => 'autotalk', nameID => $nameID, ID => $ID);
+	my $task = Task::TalkNPC->new(type => 'autotalk', nameID => $nameID, ID => $ID, sequence => $sequence);
 	AI::queue("NPC", $task);
 	# TODO: The following npc_talk hook is only added on activation.
 	# Make the task module or AI listen to the hook instead
