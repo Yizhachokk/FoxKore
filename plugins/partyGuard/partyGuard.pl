@@ -31,6 +31,17 @@
 	partyGuard_rescue [0|1]
 	  Enable the "help a fighting party member" reflex. Default 1.
 
+	partyGuard_rescue_interrupt [0|1]
+	  When an ally is actually under attack (not just attacking something
+	  themselves), drop whatever monster the hero is currently fighting and
+	  switch to defending the ally instead. Default 0 (keep the original
+	  "don't interrupt an active fight" caution). Meant for a tank/knight
+	  who should prioritize covering the party over finishing its own kill;
+	  leave off for squishier classes that shouldn't dive into a second
+	  fight mid-cast. Only applies to the "ally is being attacked" case --
+	  helping finish off an ally's own target never interrupts, regardless
+	  of this setting.
+
 	partyGuard_rescueMaxDistance [cells]
 	  Don't try to assist a party member fighting further away than this. Default 20.
 
@@ -81,6 +92,7 @@
 	--- EXAMPLE config.txt
 	partyGuard 1
 	partyGuard_rescue 1
+	partyGuard_rescue_interrupt 0
 	partyGuard_rescueMaxDistance 20
 	partyGuard_castWaitPercent 50
 	partyGuard_castIgnore
@@ -323,7 +335,6 @@ sub waitForOthers {
 # ------------------------------------------------------------------
 sub onPacketAttack {
 	return unless ($config{partyGuard} && $config{partyGuard_rescue} && @partyUsersID);
-	return if AI::inQueue("attack"); # hero already fighting something -- don't interrupt
 
 	my (undef, $args) = @_;
 	my $sourceID = $args->{sourceID};
@@ -333,16 +344,25 @@ sub onPacketAttack {
 
 	my %partySet = map { $_ => 1 } @partyUsersID;
 
-	my ($allyID, $monsterID);
-	if ($partySet{$sourceID} && $monstersList->getByID($targetID)) {
-		# ally is attacking a monster -> help finish it off
-		($allyID, $monsterID) = ($sourceID, $targetID);
-	} elsif ($partySet{$targetID} && $monstersList->getByID($sourceID)) {
+	my ($allyID, $monsterID, $isDefending);
+	if ($partySet{$targetID} && $monstersList->getByID($sourceID)) {
 		# ally is being attacked -> defend them
-		($allyID, $monsterID) = ($targetID, $sourceID);
+		($allyID, $monsterID, $isDefending) = ($targetID, $sourceID, 1);
+	} elsif ($partySet{$sourceID} && $monstersList->getByID($targetID)) {
+		# ally is attacking a monster -> help finish it off
+		($allyID, $monsterID, $isDefending) = ($sourceID, $targetID, 0);
 	} else {
 		return;
 	}
+
+	# Defending an ally who's actually under attack is urgent enough to drop
+	# our own target for, when partyGuard_rescue_interrupt is on (meant for a
+	# tank/knight -- other classes should keep the original "don't interrupt"
+	# caution and just finish their own fight first). Helping finish off an
+	# ally's own target is lower priority and never interrupts an active
+	# fight, interrupt setting or not.
+	my $alreadyFighting = AI::inQueue("attack");
+	return if ($alreadyFighting && !($isDefending && $config{partyGuard_rescue_interrupt}));
 
 	return if ($config{partyGuard_ignore} && existsInList("$config{partyGuard_ignore}", "$char->{'party'}{'users'}{$allyID}{'name'}"));
 
@@ -352,8 +372,14 @@ sub onPacketAttack {
 	my $maxDist = defined($config{partyGuard_rescueMaxDistance}) ? $config{partyGuard_rescueMaxDistance} : 20;
 	return if (distance($char->{pos_to}, $monster->{pos_to}) > $maxDist);
 
-	message TF("[partyGuard] Party member %s is fighting %s -- assisting\n",
-		$char->{party}{users}{$allyID}{name}, $monster->{name}), NAME;
+	if ($alreadyFighting) {
+		message TF("[partyGuard] Party member %s is under attack by %s -- dropping current target to defend\n",
+			$char->{party}{users}{$allyID}{name}, $monster->{name}), NAME;
+		AI::clear("attack");
+	} else {
+		message TF("[partyGuard] Party member %s is fighting %s -- assisting\n",
+			$char->{party}{users}{$allyID}{name}, $monster->{name}), NAME;
+	}
 
 	AI::clear("move", "route", "mapRoute");
 	$char->attack($monsterID);
