@@ -298,15 +298,26 @@ sub processSoulChange {
 
 			my $distance = distance(calcPosition($char), calcPosition($player));
 
-			# Need to walk to the target if out of range so that we can cast the skill.
+			# Nudge one step toward the target instead of a full ai_route() --
+			# ai_route() queues a persistent pathfinding task that doesn't clear
+			# or coordinate with an active `follow` task, so it fights the core
+			# follow logic for movement control: it can drag the character off
+			# its path toward its own master (who may be moving in a completely
+			# different direction), causing it to lose sight of the master and
+			# fall into follow's own "lost master" recovery (climbing lost_stuck)
+			# while this loop keeps independently trying to reach its target.
+			#
+			# $char->move() is a single-motion nudge, not a pathfinding task --
+			# it's the very same primitive core follow logic itself uses each
+			# tick to step toward its master (see AI::CoreLogic's processFollow),
+			# so it doesn't compete with follow the way ai_route() does. We still
+			# attempt the cast right after regardless of whether the step lands;
+			# if it doesn't connect, this loop's own maxAttempts/timeout give up
+			# on this target normally and whatever else the character was doing
+			# (follow included) just carries on.
 			if ($distance > 8) {
 				my $targetPos = calcPosition($player);
-				ai_route(
-					$field->baseName,
-					$targetPos->{x},
-					$targetPos->{y},
-					distFromGoal => 4,
-				);
+				$char->move($targetPos->{x}, $targetPos->{y});
 			}
 
 			my $skill = Skill->new(auto => "Soul Change");
