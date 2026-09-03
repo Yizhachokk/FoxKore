@@ -110,8 +110,10 @@ sub getRoute {
 		next if (lc $field->baseName eq $save_map); # don't respawn if it's the map we're on
 
 		debug "routeUseRespawn: matched save_map -> sending respawn\n", "routeUseRespawn";
-		sendMessage($messageSender, "c", "respawn");
-		# Also send a plain "respawn" for debugging (keep both for now)
+		# Party chat (not "c"/public) so the whole party's PartyRespawnSignal
+		# automacro (account/CityBaseConfig.txt) can react and respawn+
+		# autostorage together instead of only this character shortcutting.
+		sendMessage($messageSender, "p", "respawn");
 		Commands::run("respawn");
 		undef @route;
 	}
