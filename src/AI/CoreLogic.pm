@@ -3010,8 +3010,23 @@ sub processAutoSkillUse {
 	if (AI::isIdle() || AI::is(qw(route mapRoute follow sitAuto take items_gather items_take attack teleport) ) || (AI::action() eq "skill_use" && AI::args()->{tag} eq "attackSkill")) {
 		my %self_skill;
 		for (my $i = 0; exists $config{"useSelf_skill_$i"}; $i++) {
+			my $maxAttempts = $config{"useSelf_skill_$i"."_maxAttempts"};
+			if ($maxAttempts) {
+				if ($config{"useSelf_skill_$i"."_whenStatusInactive"}
+				&& $char->statusActive($config{"useSelf_skill_$i"."_whenStatusInactive"})) {
+					# The guarded status landed -- give this block a fresh
+					# set of attempts for the next time it's needed.
+					delete $ai_v{"useSelf_skill_${i}_attempts"};
+				}
+				# maxAttempts was previously accepted but silently ignored
+				# for useSelf_skill (only attackSkillSlot implemented it),
+				# so a skill that kept failing to land would retry forever
+				# every _timeout seconds instead of stopping after maxAttempts.
+				next if (($ai_v{"useSelf_skill_${i}_attempts"} || 0) >= $maxAttempts);
+			}
 			if ($config{"useSelf_skill_$i"} && checkSelfCondition("useSelf_skill_$i")) {
 				$ai_v{"useSelf_skill_$i"."_time"} = time;
+				$ai_v{"useSelf_skill_${i}_attempts"}++ if $maxAttempts;
 				$self_skill{skillObject} = Skill->new(auto => $config{"useSelf_skill_$i"});
 				$self_skill{ID} = $self_skill{skillObject}->getHandle();
 				$self_skill{owner} = $self_skill{skillObject}->getOwner();
