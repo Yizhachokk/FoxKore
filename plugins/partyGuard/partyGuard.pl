@@ -282,16 +282,36 @@ sub waitForOthers {
 			return if AI::inQueue(@notAI);
 			return unless $actor;
 			return if ($chaseParty{time} && !timeOut($chaseParty{time}, 1));
+
+			# Stuck detection: if OUR position hasn't actually moved since the
+			# last chase cycle, the route at the current distFromGoal isn't
+			# working (e.g. that exact ring around the target has no walkable/
+			# reachable cell) -- repeating the identical ai_route() call just
+			# spams "closing in" forever without ever getting closer. Relax
+			# distFromGoal by 1 for each consecutive stuck cycle so the
+			# pathfinder gets a different ring to try, capped so we don't end
+			# up "closing in" from absurdly far away; reset back to the
+			# configured approachDist as soon as we actually make progress.
+			my $myPosNow = { x => $char->{pos_to}{x}, y => $char->{pos_to}{y} };
+			if ($chaseParty{last_my_pos} && $chaseParty{last_my_pos}{x} == $myPosNow->{x} && $chaseParty{last_my_pos}{y} == $myPosNow->{y}) {
+				$chaseParty{stuck}++;
+			} else {
+				$chaseParty{stuck} = 0;
+			}
+			$chaseParty{last_my_pos} = $myPosNow;
 			$chaseParty{time} = time;
 
-			message TF("[partyGuard] Party member %s in sight but %d cells away, closing in\n",
-				$char->{party}{users}{$_}{name}, distance($char->{pos_to}, $actor->{pos_to})), NAME
+			my $maxRelax = 10;
+			my $tryDist = $approachDist + ($chaseParty{stuck} > $maxRelax ? $maxRelax : $chaseParty{stuck});
+
+			message TF("[partyGuard] Party member %s in sight but %d cells away, closing in (trying distFromGoal %d)\n",
+				$char->{party}{users}{$_}{name}, distance($char->{pos_to}, $actor->{pos_to}), $tryDist), NAME
 				if $config{partyGuard_showMsg};
 
 			AI::clear("move", "route", "mapRoute");
 			my $free = find_free_cell_near($actor->{pos_to}{x}, $actor->{pos_to}{y});
 			AI::ai_route($field->baseName, $free->{x}, $free->{y},
-				distFromGoal => $approachDist, attackOnRoute => $config{partyGuard_attackOnSearch});
+				distFromGoal => $tryDist, attackOnRoute => $config{partyGuard_attackOnSearch});
 		## party sit?
 		} elsif ($actor && $config{partyGuard_followSit} && !(AI::inQueue(@notAI)) && AI::action ne "sitAuto") {
 			if ($actor->{sitting} && !$partySit{ID}) {
