@@ -2860,7 +2860,24 @@ sub processFollow {
  			message T("My master teleported\n"), "follow";
 
 		} elsif ($args->{'lost_stuck'}) {
-			if ($args->{'follow_lost_portalID'} eq "") {
+			# A portal candidate having already been tried once (below) used to
+			# leave us doing nothing at all here whenever we were also stuck --
+			# no move command of any kind -- because this branch only ever
+			# nudged along the vector when no portal was in play. That stranded
+			# the character forever if the one-shot portal route failed, which
+			# routinely happens right after the rest of the party funnels
+			# through the same portal tile (transient congestion, not a truly
+			# unreachable portal). Retry the portal route periodically instead
+			# of only ever once, and otherwise always fall back to a vector
+			# nudge so we're never completely idle while lost.
+			if ($args->{'follow_lost_portalID'} ne "" && $portals{$args->{'follow_lost_portalID'}} && $args->{'lost_stuck'} % 3 == 0) {
+				%{$ai_v{'temp'}{'pos'}} = %{$portals{$args->{'follow_lost_portalID'}}{'pos'}};
+				ai_route(
+					$field->baseName, $ai_v{'temp'}{'pos'}{'x'}, $ai_v{'temp'}{'pos'}{'y'},
+					attackOnRoute => 1,
+					isFollow => 1
+				);
+			} else {
 				moveAlongVector($ai_v{'temp'}{'pos'}, $chars[$config{'char'}]{'pos_to'}, $args->{'ai_follow_lost_vec'}, $config{'followLostStep'} / ($args->{'lost_stuck'} + 1));
 				$char->move(@{$ai_v{temp}{pos}}{qw(x y)});
 			}
