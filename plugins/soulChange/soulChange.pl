@@ -298,39 +298,30 @@ sub processSoulChange {
 
 			my $distance = distance(calcPosition($char), calcPosition($player));
 
-			# Nudge one step toward the target instead of a full ai_route() --
-			# ai_route() queues a persistent pathfinding task that doesn't clear
-			# or coordinate with an active `follow` task, so it fights the core
-			# follow logic for movement control: it can drag the character off
-			# its path toward its own master (who may be moving in a completely
-			# different direction), causing it to lose sight of the master and
-			# fall into follow's own "lost master" recovery (climbing lost_stuck)
-			# while this loop keeps independently trying to reach its target.
+			# Nudge one step toward the target every cycle, same as before,
+			# but WITHOUT going through $char->move()/ai_route(): those queue
+			# a Task::Move/Task::Route entry on @ai_seq, and the very next
+			# line here (ai_skillUse2()) unconditionally unshifts 'skill_use'
+			# on top of it before the movement task ever gets a single
+			# iteration -- $char->processTask('move') only iterates a task
+			# while it's actually the front of @ai_seq, and nothing else ever
+			# reaches back in to clean up an entry buried before its first
+			# run. That orphaned the move step permanently, every cycle a
+			# target stayed out of range, which over a session is exactly
+			# what grew @ai_seq into the hundreds (visible via `ai print`).
 			#
-			# $char->move() is a single-motion nudge, not a pathfinding task --
-			# it's the very same primitive core follow logic itself uses each
-			# tick to step toward its master (see AI::CoreLogic's processFollow),
-			# so it doesn't compete with follow the way ai_route() does. We
-			# don't also attempt the cast this cycle when we just queued a
-			# step (see below); a later cycle retries once actually in range.
+			# We do want both to happen every cycle, though -- this account
+			# has Free Cast learned, which lets it keep walking through an
+			# in-progress cast, so casting and stepping closer aren't
+			# mutually exclusive here. $char->sendMove() is the one-shot
+			# network write Task::Move itself calls internally once it's
+			# actually iterated (Actor::You::sendMove -> Network::Send's
+			# sendMove, the 'character_move' packet) -- calling it directly
+			# sends the same walk command without ever creating an @ai_seq
+			# entry for it, so there's nothing left for skill_use to bury.
 			if ($distance > 8) {
 				my $targetPos = calcPosition($player);
-				$char->move($targetPos->{x}, $targetPos->{y});
-				# Don't also queue the cast this cycle: ai_skillUse2() below
-				# unconditionally unshifts a fresh 'skill_use' entry, which
-				# would bury the move task we just queued before it (or
-				# anything else) ever gets a chance to run it -- $char->move()
-				# only gets iterated via $char->processTask('move') when it's
-				# actually the front of the AI queue, and nothing ever goes
-				# back to clean up an entry that got buried before its first
-				# iteration. Doing that every ~soulChange_timeout seconds
-				# while a target stays out of range is exactly what grows the
-				# AI queue into the hundreds over a session (`ai print` will
-				# show it: a permanent, ever-growing pile of dead move/
-				# skill_use entries under the live one). Let the step resolve
-				# (it self-limits via Task::Move's own ~3s giveup) and try
-				# the cast on a later cycle once actually in range.
-				return;
+				$char->sendMove($targetPos->{x}, $targetPos->{y});
 			}
 
 			my $skill = Skill->new(auto => "Soul Change");
