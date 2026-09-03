@@ -1968,6 +1968,30 @@ sub actor_display {
 			# New actor_display packets include the player's name
 			$actor->setName($name) if defined $name;
 			$mustAdd = 1;
+
+			# This player just re-entered our sight, so we lost the old
+			# Actor object (and with it, everything we knew about their
+			# active statuses) the moment they walked out of clientSight.
+			# The RO protocol doesn't resend a unit's current status list
+			# on re-appearance, so without this, target_whenStatusInactive
+			# and friends always see a blank slate here and re-fire (e.g.
+			# a priest re-casting Assumptio on someone who still has it,
+			# just because they briefly left and re-entered view).
+			# %players_old keeps a deep copy from the moment they
+			# disappeared (see below); carry over only the statuses that,
+			# by their own recorded remaining duration, haven't actually
+			# expired yet. Skip anyone who disconnected (relogging clears
+			# most statuses server-side) rather than merely walked off.
+			my $old = $players_old{$args->{ID}};
+			if ($old && $old->{disappeared} && !$old->{disconnected} && $old->{statuses}) {
+				my $now = time;
+				foreach my $handle (keys %{$old->{statuses}}) {
+					my $status = $old->{statuses}{$handle};
+					next unless $status->{tick};
+					my $remaining = ($status->{time} + $status->{tick} / 1000) - $now;
+					$actor->setStatus($handle, 1, $remaining * 1000) if $remaining > 0;
+				}
+			}
 		}
 		$actor->{nameID} = $nameID;
 	} elsif ($object_class eq 'Actor::Slave') {
