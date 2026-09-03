@@ -310,14 +310,27 @@ sub processSoulChange {
 			# $char->move() is a single-motion nudge, not a pathfinding task --
 			# it's the very same primitive core follow logic itself uses each
 			# tick to step toward its master (see AI::CoreLogic's processFollow),
-			# so it doesn't compete with follow the way ai_route() does. We still
-			# attempt the cast right after regardless of whether the step lands;
-			# if it doesn't connect, this loop's own maxAttempts/timeout give up
-			# on this target normally and whatever else the character was doing
-			# (follow included) just carries on.
+			# so it doesn't compete with follow the way ai_route() does. We
+			# don't also attempt the cast this cycle when we just queued a
+			# step (see below); a later cycle retries once actually in range.
 			if ($distance > 8) {
 				my $targetPos = calcPosition($player);
 				$char->move($targetPos->{x}, $targetPos->{y});
+				# Don't also queue the cast this cycle: ai_skillUse2() below
+				# unconditionally unshifts a fresh 'skill_use' entry, which
+				# would bury the move task we just queued before it (or
+				# anything else) ever gets a chance to run it -- $char->move()
+				# only gets iterated via $char->processTask('move') when it's
+				# actually the front of the AI queue, and nothing ever goes
+				# back to clean up an entry that got buried before its first
+				# iteration. Doing that every ~soulChange_timeout seconds
+				# while a target stays out of range is exactly what grows the
+				# AI queue into the hundreds over a session (`ai print` will
+				# show it: a permanent, ever-growing pile of dead move/
+				# skill_use entries under the live one). Let the step resolve
+				# (it self-limits via Task::Move's own ~3s giveup) and try
+				# the cast on a later cycle once actually in range.
+				return;
 			}
 
 			my $skill = Skill->new(auto => "Soul Change");
