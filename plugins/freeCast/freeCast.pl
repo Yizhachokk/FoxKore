@@ -86,11 +86,11 @@ sub call {
     return unless $char->{skills}{SA_FREECAST}{lv};
 
     my $i = AI::findAction("attack");
+    $myPos = $char->{pos_to};
     if (defined $i) {
         my $args = AI::args($i);
         $ID = $args->{ID};
         $target = Actor::get($ID);
-        $myPos = $char->{pos_to};
         $monsterPos = $target->{pos_to};
         $monsterDist = round(distance($myPos, $monsterPos));
     }
@@ -139,8 +139,14 @@ sub call {
 
         # Перевірка на використання вмінь -- пропускаємо кайтинг, якщо цього
         # тіку вже запущено route до лідера (обидва можуть видати команду
-        # руху й "боротися" одне з одним, якщо запустити разом)
-        if (!$routedToLeaderThisTick && (
+        # руху й "боротися" одне з одним, якщо запустити разом), і якщо
+        # немає живої атаки цього тіку: $target/$ID/$monsterPos лишаються
+        # від ОСТАННЬОГО бою (не скидаються, коли атака закінчується), тож
+        # без цієї перевірки cast() рахував би кайтинг відносно застарілої,
+        # вже неактуальної цілі під час, наприклад, простого поповнення
+        # Energy Coat на ходу без бою -- і слав би $char->move() у нікуди,
+        # звідси нескінченні "You tried too long to move".
+        if (!$routedToLeaderThisTick && defined($i) && (
             $s eq "MG_FIREBOLT" || $s eq "MG_COLDBOLT" || $s eq "MG_LIGHTNINGBOLT" || $s eq "PF_SOULCHANGE" ||
             $s eq "MG_THUNDERSTORM" || $s eq "PF_HPCONVERSION" || $s eq "EFST_ENERGYCOAT" ||
             $s eq "MG_ENERGYCOAT")) {
@@ -150,6 +156,10 @@ sub call {
 }
 
 sub cast {
+    # Defense in depth: never kite relative to a stale/no-longer-existing
+    # target, even if something calls cast() without call()'s own guard.
+    return unless ($target && $target->{ID} && $monstersList->getByID($target->{ID}));
+
     if (($char->{skills}{SA_FREECAST}{lv}) && main::timeOut(\%timeout)) {
 
         my ($realMyPos, $realMonsterPos, $realMonsterDist, $hitYou);

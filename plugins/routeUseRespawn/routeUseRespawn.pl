@@ -10,13 +10,12 @@
 # Config key (put in config.txt):
 #	route_routeUseRespawn 1
 # 
-# Source Mod: CalcMapRoute.pm
-# update the 'iterate' sub. look for the following code
-#		debug "Map Solution Ready for traversal.\n", "route";
-#		debug sprintf("%s\n", $self->getRouteString()), "route";
-# 		
-# and add this hook below it		
-#		Plugins::callHook('MapSolutionReady', { route => $self->getRouteString() });
+# No source mod needed -- src/Task/CalcMapRoute.pm's iterate() already calls
+# Plugins::callHook('FullSolutionReady', { route => ..., fullRoute => ... })
+# right where this file's header used to say to add a 'MapSolutionReady'
+# hook. That hook name was never added to core (only exists in this
+# comment), so this plugin silently never fired at all until it was
+# pointed at the hook core actually calls.
 #
 ###############################################
 package routeUseRespawn;
@@ -36,7 +35,7 @@ use List::Util qw(shuffle);
 Plugins::register('routeUseRespawn', 'Automatically uses respawn command if a saveMap is in the route', \&onUnload);
 
 my $hooks = Plugins::addHooks(
-	['MapSolutionReady',			\&getRoute],
+	['FullSolutionReady',			\&getRoute],
 );
 
 message "routeUseRespawn success\n", "success";
@@ -78,6 +77,15 @@ sub getRoute {
 		my $current_lc = lc $field->baseName;
 		if (exists $exclude_maps{$current_lc}) {
 			debug sprintf("routeUseRespawn: current field '%s' is excluded -> skipping respawn\n", $field->baseName), "routeUseRespawn";
+			return;
+		}
+		# Data-driven check (tables/no_teleport_maps.txt) -- catches shop/guild/instance
+		# maps that block the Return-type teleport `do respawn` needs, even when they're
+		# not in the hardcoded %exclude_maps list above. Without this, Task::Teleport::Respawn
+		# still tries to use the Butterfly Wing/skill, the server silently rejects it, and the
+		# bot sits stuck instead of walking out normally.
+		if (Misc::isReturnTeleportBlockedOnMap($field->baseName)) {
+			debug sprintf("routeUseRespawn: current field '%s' blocks return-teleport (no_teleport_maps.txt) -> skipping respawn\n", $field->baseName), "routeUseRespawn";
 			return;
 		}
 	}
