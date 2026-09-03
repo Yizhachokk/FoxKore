@@ -2602,13 +2602,25 @@ sub processFollow {
 	if ((AI::action() eq 'move' || AI::action() eq 'route') && AI::args() && AI::args()->{isFollow}) {
 		$follow_action = AI::action();
 	}
-	
+
+	# A follower stuck mid-fight (esp. with attackNoGiveup 1, which never lets
+	# combat self-abandon) would otherwise never reach the lost-master
+	# detection/recovery below at all -- AI::action() stays "attack" for as
+	# long as the fight lasts, so this whole function, ai_follow_lost included,
+	# sat frozen the entire time even though the actual reconnect logic
+	# (further down, and ai_partyfollow()) only checks $args->{following}/
+	# {ai_follow_lost}, not AI::action(). Opt-in only: don't change behavior
+	# for accounts that never asked for a follower to interrupt combat over a
+	# genuinely missing master.
+	my $attackInterruptForFollow = $config{followReconnectDuringAttack} && AI::action() eq "attack";
+
 	return unless (
 		(AI::isIdle() || (AI::is('route') && AI::args()->{isRandomWalk})) ||
 		(AI::action() eq "follow") ||
-		$follow_action
+		$follow_action ||
+		$attackInterruptForFollow
 	);
-	
+
 	# stop follow when talking with NPC
 	if (AI::action() eq 'route' && defined(AI::args(0)->getSubtask())) {
 		my $rrr = AI::args(0)->getSubtask();
@@ -2629,6 +2641,19 @@ sub processFollow {
 		$followIndex = AI::findAction("follow");
 	}
 	my $args = AI::args($followIndex);
+
+	# We got here specifically because we're mid-attack and the master is
+	# genuinely not visible right now (not just a fresh idle tick) -- give the
+	# lost-master detection/recovery below (and ai_partyfollow() at the very
+	# end of this function) a clean queue to work with instead of letting its
+	# route/move calls unshift on top of the still-active attack entry, which
+	# would just bury it forever (same class of bug as the soulChange/freeCast
+	# queue-stacking fixes earlier this session) rather than cleanly handing
+	# off from "fighting" to "searching for master".
+	if ($attackInterruptForFollow && $args->{following}
+	  && (!$players{$args->{ID}} || !%{$players{$args->{ID}}})) {
+		AI::clear("attack", "move", "route", "mapRoute");
+	}
 
 	# if we are not following now but master is in the screen...
 	if (!defined $args->{'ID'}) {
