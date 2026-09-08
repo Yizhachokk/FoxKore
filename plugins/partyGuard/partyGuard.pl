@@ -301,11 +301,22 @@ sub waitForOthers {
 			$chaseParty{last_my_pos} = $myPosNow;
 			$chaseParty{time} = time;
 
+			# Relaxed distFromGoal must always stay STRICTLY LESS than the
+			# current distance to the target -- otherwise the route is
+			# already "satisfied" at our current position (0 cells to
+			# travel), ai_route() does nothing, our position never changes,
+			# stuck never resets, and relaxation pegs at its cap forever
+			# instead of ever converging. (Confirmed live: distFromGoal 18
+			# with the target only 10 cells away -- already "close enough",
+			# so nothing moved, stuck saturated at +10 and stayed there.)
+			my $currentDist = distance($char->{pos_to}, $actor->{pos_to});
 			my $maxRelax = 10;
-			my $tryDist = $approachDist + ($chaseParty{stuck} > $maxRelax ? $maxRelax : $chaseParty{stuck});
+			my $relaxed = $approachDist + ($chaseParty{stuck} > $maxRelax ? $maxRelax : $chaseParty{stuck});
+			my $relaxCap = $currentDist - 1;
+			my $tryDist = $relaxed > $relaxCap ? $relaxCap : $relaxed;
 
 			message TF("[partyGuard] Party member %s in sight but %d cells away, closing in (trying distFromGoal %d)\n",
-				$char->{party}{users}{$_}{name}, distance($char->{pos_to}, $actor->{pos_to}), $tryDist), NAME
+				$char->{party}{users}{$_}{name}, $currentDist, $tryDist), NAME
 				if $config{partyGuard_showMsg};
 
 			AI::clear("move", "route", "mapRoute");
