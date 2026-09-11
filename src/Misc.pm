@@ -6231,6 +6231,15 @@ sub checkMonsterCondition {
 		return 0 if whenGroundStatus($realMonsterPos, $config{$prefix."_whenNotGround"});
 	}
 
+	if ($config{$prefix."_race"}) {
+		return 0 unless defined $monster->{nameID} && exists $monstersTable{$monster->{nameID}}
+			&& existsInList($config{$prefix."_race"}, $monstersTable{$monster->{nameID}}{Race});
+	}
+	if ($config{$prefix."_notRace"}) {
+		return 0 if defined $monster->{nameID} && exists $monstersTable{$monster->{nameID}}
+			&& existsInList($config{$prefix."_notRace"}, $monstersTable{$monster->{nameID}}{Race});
+	}
+
 	if ($config{$prefix."_dist"}) {
 		return 0 unless inRange(blockDistance($realMyPos, $realMonsterPos), $config{$prefix."_dist"});
 	}
