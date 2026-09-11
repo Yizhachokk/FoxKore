@@ -4,6 +4,15 @@
 # This plugin listens for emote commands (for example: `doCommand e ic`) or
 # party messages requesting Bragi and queues the sender for a Bragi cast.
 #
+# Gated ONLY on bragiGive 1 -- do NOT resurrect a "legacy soulChange 1 also
+# enables this" fallback. That used to exist and broke account/03sage's Sage
+# (soulChange 1 there is for the real Soul Change skill): bragiGive would
+# also activate and queue BA_POEMBRAGI attempts on a character that doesn't
+# have Bragi, flooding the AI queue with un-castable skill_use entries that
+# starved out the legitimate PF_SOULCHANGE casts. Checked every account in
+# this project -- account/08bragi (the actual Bard) already sets its own
+# explicit bragiGive 1, so nothing relies on the old alias.
+#
 # available config:
 #   bragiGive [1|0] - enable or disable the plugin.
 #   bragiGive_minSPPercent [value] - minimum SP to cast the skill, default to 50 (percent).
@@ -39,7 +48,7 @@ use AI;
 use Actor;
 
 sub load {
-	message "[bragiGive] plugin loaded. Enable with 'bragiGive 1' or legacy 'soulChange 1'. Enable debug with 'bragiGive_debug 1'.\n", "plugin";
+	message "[bragiGive] plugin loaded. Enable with 'bragiGive 1'. Enable debug with 'bragiGive_debug 1'.\n", "plugin";
 }
 
 Plugins::register('bragiGive', 'Bragi responder: queue and cast Bragi on emote or message', \&load, \&unload);
@@ -53,22 +62,17 @@ my $hooks = Plugins::addHooks(
 	['packet_public', \&onPartyMsg, undef],
 	['packet_party', \&onPartyMsg, undef],
 
-	['packet_emotion', \&onEmotion, undef],
-	['packet_emote', \&onEmotion, undef],
-	['packet_emoticon', \&onEmotion, undef],
-	['packet_emotionMsg', \&onEmotion, undef],
-	['packet_emot', \&onEmotion, undef],
-	['packet_emotion2', \&onEmotion, undef],
-	['packet_emote2', \&onEmotion, undef],
-	['packet_emoticon2', \&onEmotion, undef],
-	['packet_emotionMsg2', \&onEmotion, undef],
-	['packet_emoteMsg', \&onEmotion, undef],
-	['packet_emoticon_msg', \&onEmotion, undef],
-	['packet_actor_emotion', \&onEmotion, undef],
-	['packet_actor_action', \&onEmotion, undef],
-	['packet_action', \&onEmotion, undef],
-	['packet_user_emotion', \&onEmotion, undef],
-	['packet_skilluse', \&onSkillUse, undef],
+	# PacketParser.pm fires every packet as 'packet/<handlerName>' (with a
+	# slash), keyed by the sub name the packet is actually registered under
+	# (see ServerType0.pm) -- not any of the guessed 'packet_xxx' names that
+	# used to be listed here. Emotes (e.g. *Idea*) come in as packet '00C0',
+	# handled by sub `emoticon`, so the real hook is 'packet/emoticon'. Every
+	# 'packet_emot*'/'packet_action'/etc alias below was dead: none of them
+	# ever matched, so onEmotion never actually ran.
+	['packet/emoticon', \&onEmotion, undef],
+	# Poem of Bragi is a no-damage buff, confirmed via packet '011A'/'09CB'
+	# (sub `skill_used_no_damage`), not the damage-skill 'skill_use' packet.
+	['packet/skill_used_no_damage', \&onSkillUse, undef],
 );
 
 my $attempts = 0;
@@ -87,7 +91,7 @@ sub onAIPre {
 }
 
 sub onPartyMsg {
-	return unless $config{bragiGive} || $config{soulChange};
+	return unless $config{bragiGive};
 	my (undef, $args) = @_;
 
 	my $msg = '';
@@ -110,7 +114,7 @@ sub onPartyMsg {
 }
 
 sub onEmotion {
-	return unless $config{bragiGive} || $config{soulChange};
+	return unless $config{bragiGive};
 
 	my (undef, $args) = @_;
 
@@ -134,10 +138,20 @@ sub onEmotion {
 	my $matches_emotion = 0;
 	my $emotion_cfg = (defined $config{bragiGive_emotion} && $config{bragiGive_emotion} ne '') ? $config{bragiGive_emotion} : $config{soulChange_emotion};
 
-	# normalize key from raw_emotion or raw_text
+	# normalize key(s) from raw_emotion or raw_text. A numeric raw_emotion (the
+	# real case: packet/emoticon's `type` field, e.g. 5) is looked up in
+	# %emotions_lut to also pull its short command alias(es) (5 => "ic"), since
+	# tables/emotions.txt is the source of truth for which ID means what --
+	# matching the bare number against a hardcoded "==42" (the *SP* emote) would
+	# otherwise never recognize *Idea* (id 5, alias "ic") at all.
+	my @emotion_keys;
 	my $emotion_key;
 	if (defined $raw_emotion) {
 		if (!ref $raw_emotion && $raw_emotion =~ /^\d+$/) {
+			push @emotion_keys, $raw_emotion;
+			if (my $cmd = $emotions_lut{$raw_emotion}{command}) {
+				push @emotion_keys, map { lc $_ } split /,/, $cmd;
+			}
 			$emotion_key = $raw_emotion;
 		} else {
 			my $s = $raw_emotion // '';
@@ -146,34 +160,36 @@ sub onEmotion {
 			$s =~ s/[^A-Za-z0-9]+$//;
 			$s =~ s/^\*+//; $s =~ s/\*+$//;
 			$emotion_key = lc $s;
+			push @emotion_keys, $emotion_key;
 		}
 	} elsif (defined $raw_text) {
 		if ($raw_text =~ /\*([^\*]{1,40})\*/) {
 			my $em = $1; $em =~ s/^\s+|\s+$//g; $em =~ s/^\*+//; $em =~ s/\*+$//;
 			$emotion_key = lc $em;
 			$raw_emotion = $em;
+			push @emotion_keys, $emotion_key;
 		} elsif ($raw_text =~ /\b(ic|idea|bragi)\b/i) {
 			$emotion_key = lc $1;
 			$raw_emotion = $1;
+			push @emotion_keys, $emotion_key;
 		}
 	}
 
 	if (defined $emotion_cfg && $emotion_cfg ne '') {
 		my %emHash = map { lc($_) => 1 } split / *, */, $emotion_cfg;
-		$matches_emotion = 1 if $emotion_key && $emHash{$emotion_key};
-		$matches_emotion = 1 if (! $emotion_key && defined $raw_emotion && $emHash{lc($raw_emotion)});
+		$matches_emotion = 1 if grep { $emHash{$_} } @emotion_keys;
 	} else {
-		if (defined $emotion_key) {
-			if ($emotion_key =~ /^\d+$/ && $emotion_key == 42) {
+		for my $k (@emotion_keys) {
+			if ($k =~ /^\d+$/ && $k == 42) {
 				$matches_emotion = 1;
-			} elsif ($emotion_key =~ /^sp$/ || $emotion_key =~ /^sptime$/ || $emotion_key =~ /^e7$/ || $emotion_key =~ /^mp$/) {
+			} elsif ($k =~ /^sp$/ || $k =~ /^sptime$/ || $k =~ /^e7$/ || $k =~ /^mp$/) {
 				$matches_emotion = 1;
-			} elsif ($emotion_key eq 'ic' || $emotion_key eq 'idea' || $emotion_key =~ /bragi/) {
+			} elsif ($k eq 'ic' || $k eq 'idea' || $k =~ /bragi/) {
 				$matches_emotion = 1;
 			}
-		} elsif (defined $raw_text && $raw_text =~ /bragi/i) {
-			$matches_emotion = 1;
+			last if $matches_emotion;
 		}
+		$matches_emotion = 1 if (!$matches_emotion && defined $raw_text && $raw_text =~ /bragi/i);
 	}
 
 	if ($config{bragiGive_debug} || $config{soulChange_debug}) {
@@ -315,7 +331,7 @@ sub onEmotion {
 }
 
 sub processBragiGive {
-	return unless $config{bragiGive} || $config{soulChange};
+	return unless $config{bragiGive};
 	return unless scalar(@{$prioQueue}) > 0;
 	return if $char->sp_percent() < ($config{bragiGive_minSPPercent} || $config{soulChange_minSPPercent} || 50);
 
@@ -343,16 +359,18 @@ sub processBragiGive {
 
 			my $distance = distance(calcPosition($char), calcPosition($player));
 
-			# Need to walk to the target if out of range so that we can cast the skill.
+			# Nudge one step toward the target instead of a full ai_route() -- ai_route()
+			# queues a persistent pathfinding task that doesn't clear or coordinate with
+			# an active `follow` task, so it fights the core follow logic for movement
+			# control (same problem and same fix as plugins/soulChange/soulChange.pl).
+			# $char->move() is the single-motion nudge core follow itself uses each tick,
+			# so it doesn't compete with follow. We still attempt the cast right after
+			# regardless of whether the step lands; maxAttempts/timeout below give up on
+			# this target normally if it doesn't connect.
 			# For Bragi, approach to minimum 3 tiles from the target.
 			if ($distance > 3) {
 				my $targetPos = calcPosition($player);
-				ai_route(
-					$field->baseName,
-					$targetPos->{x},
-					$targetPos->{y},
-					distFromGoal => 3,
-				);
+				$char->move($targetPos->{x}, $targetPos->{y});
 			}
 
 			my $skillName = $config{bragi_skill} || "BA_POEMBRAGI2#Poem of Bragi#";
@@ -475,7 +493,7 @@ sub getPriority {
 }
 
 sub onSkillUse {
-	return unless $config{bragiGive} || $config{soulChange};
+	return unless $config{bragiGive};
 
 	my (undef, $args) = @_;
 
